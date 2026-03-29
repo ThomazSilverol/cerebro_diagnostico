@@ -7,7 +7,6 @@ from unittest.mock import patch
 from collections import deque
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
 # ── SEQUÊNCIA DE INPUTS ─────────────────────────────────────────────────────
 # Cada item: (resposta, comentário para log)
 RESPOSTAS = deque([

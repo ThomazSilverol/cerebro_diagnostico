@@ -1,16 +1,16 @@
-"""
-ia_integrator.py — Integrador de IA para Reprocessamento (Fases 1 e 3)
-Sistema: Cérebro de Engenharia Diagnóstica — Reprocessamento Inteligente v1.0
+﻿"""
+ia_integrator.py â€” Integrador de IA para Reprocessamento (Fases 1 e 3)
+Sistema: CÃ©rebro de Engenharia DiagnÃ³stica â€” Reprocessamento Inteligente v1.0
 
 Responsabilidades:
-  • Verificar disponibilidade da IA (via AIHealthMonitor)
-  • Fase 1 com IA: enriquecimento de tópicos (fallback offline se falhar)
-  • Fase 3: refinamento semântico, classificação de risco, nexo causal
-  • Retry com backoff exponencial (máx 5 tentativas)
-  • Cache de respostas para evitar chamadas redundantes
-  • Rate limiting para respeitar limites da API
+  â€¢ Verificar disponibilidade da IA (via AIHealthMonitor)
+  â€¢ Fase 1 com IA: enriquecimento de tÃ³picos (fallback offline se falhar)
+  â€¢ Fase 3: refinamento semÃ¢ntico, classificaÃ§Ã£o de risco, nexo causal
+  â€¢ Retry com backoff exponencial (mÃ¡x 5 tentativas)
+  â€¢ Cache de respostas para evitar chamadas redundantes
+  â€¢ Rate limiting para respeitar limites da API
 
-Referência: Componente IntegradorIA, Seção 4.1 e Regras 1/3 do prompt.
+ReferÃªncia: Componente IntegradorIA, SeÃ§Ã£o 4.1 e Regras 1/3 do prompt.
 """
 
 from __future__ import annotations
@@ -26,9 +26,9 @@ _DB_PADRAO   = os.path.join(_DIR_PROJETO, 'banco_pericial.db')
 
 from log_manager import GerenciadorLog
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Importações opcionais do SDK Gemini
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ImportaÃ§Ãµes opcionais do SDK Gemini
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 try:
     from google import genai as _genai_new
@@ -47,17 +47,17 @@ except ImportError:
     _OllamaEngine = None  # type: ignore[assignment,misc]
     _OLLAMA_OK = False
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Constantes
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Constantes
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# Lista de modelos em ordem de preferência — o primeiro disponível é usado.
-# gemini-2.0-flash é o modelo atual (funciona em v1 e v1beta).
-# gemini-1.5-flash-latest é fallback para contas sem acesso ao 2.0.
+# Lista de modelos em ordem de preferÃªncia â€” o primeiro disponÃ­vel Ã© usado.
+# gemini-2.0-flash Ã© o modelo atual (funciona em v1 e v1beta).
+# gemini-1.5-flash-latest Ã© fallback para contas sem acesso ao 2.0.
 MODELOS_FALLBACK = [
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
@@ -72,24 +72,40 @@ MAX_TENTATIVAS   = 5
 BACKOFF_BASE     = 10   # segundos (10, 20, 40, 80, 160)
 RATE_LIMIT_PAUSA = 1.5  # segundos entre chamadas (evita 429)
 MAX_TOKENS       = 1024
+FASE2_MAX_TOKENS_PADRAO = 500
+FASE2_TEXTO_MAX_PADRAO = 900
+FASE2_COMMIT_LOTE_PADRAO = 15
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+def _env_int(nome: str, padrao: int) -> int:
+    try:
+        valor = int(os.getenv(nome, str(padrao)))
+        return valor if valor > 0 else padrao
+    except Exception:
+        return padrao
+
+
+FASE2_MAX_TOKENS = _env_int("IA_FASE2_MAX_TOKENS", FASE2_MAX_TOKENS_PADRAO)
+FASE2_TEXTO_MAX = _env_int("IA_FASE2_TEXTO_MAX_CHARS", FASE2_TEXTO_MAX_PADRAO)
+FASE2_COMMIT_LOTE = _env_int("IA_FASE2_COMMIT_LOTE", FASE2_COMMIT_LOTE_PADRAO)
+
+
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _str_lista(lst) -> list:
     """Normaliza lista que pode conter strings ou dicts para lista de strings simples.
 
-    Ollama às vezes retorna [{"nome": "NBR 5410"}] em vez de ["NBR 5410"].
-    Esta função garante que sempre retornamos strings, independente do formato.
+    Ollama Ã s vezes retorna [{"nome": "NBR 5410"}] em vez de ["NBR 5410"].
+    Esta funÃ§Ã£o garante que sempre retornamos strings, independente do formato.
     """
     resultado = []
     for item in (lst or []):
         if isinstance(item, str):
             s = item.strip()
         elif isinstance(item, dict):
-            # Procura a primeira string não-vazia em chaves semânticas comuns
+            # Procura a primeira string nÃ£o-vazia em chaves semÃ¢nticas comuns
             s = next(
                 (v.strip() for v in item.values() if isinstance(v, str) and v.strip()),
                 ""
@@ -103,22 +119,22 @@ def _str_lista(lst) -> list:
     return resultado
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # IntegradorIA
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class IntegradorIA:
     """
-    Gerencia comunicação com a IA para Fase 1 (opcional) e Fase 3 (bloqueadora).
+    Gerencia comunicaÃ§Ã£o com a IA para Fase 1 (opcional) e Fase 3 (bloqueadora).
 
-    Uso básico:
+    Uso bÃ¡sico:
         integrador = IntegradorIA(api_key="...", db_path="banco_pericial.db")
 
         # Verificar disponibilidade
         if integrador.is_available():
             integrador.processar_fase1(doc_dict, laudo_id)
 
-        # Fase 3 (bloqueadora — usar dentro de retry loop do orquestrador)
+        # Fase 3 (bloqueadora â€” usar dentro de retry loop do orquestrador)
         integrador.processar_fase3()
     """
 
@@ -144,14 +160,14 @@ class IntegradorIA:
         self._ollama: Any = None
         self._inicializar_cliente()
 
-    # ─── Inicialização ────────────────────────────────────────────────────────
+    # â”€â”€â”€ InicializaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _inicializar_cliente(self) -> None:
-        # ── Gemini (API externa) ──────────────────────────────────────────────
+        # â”€â”€ Gemini (API externa) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if self.api_key and _SDK:
             try:
                 if _SDK == "new":
-                    # Forçar api_version="v1" evita o erro
+                    # ForÃ§ar api_version="v1" evita o erro
                     # "not found for API version v1beta" que ocorre com
                     # gemini-1.5-flash no SDK google-genai >= 1.0
                     try:
@@ -160,9 +176,9 @@ class IntegradorIA:
                             http_options={"api_version": "v1"},
                         )
                     except TypeError:
-                        # Versões antigas do SDK não aceitam http_options
+                        # VersÃµes antigas do SDK nÃ£o aceitam http_options
                         self._client = _genai_new.Client(api_key=self.api_key)
-                    # Detectar modelo disponível automaticamente
+                    # Detectar modelo disponÃ­vel automaticamente
                     self.modelo = self._detectar_modelo()
                 else:
                     _genai_legacy.configure(api_key=self.api_key)
@@ -171,7 +187,7 @@ class IntegradorIA:
                 self.log.warning(f"[IntegradorIA] Falha ao inicializar Gemini: {e}")
                 self._client = None
 
-        # ── Ollama (IA local, sem API) ────────────────────────────────────────
+        # â”€â”€ Ollama (IA local, sem API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if _OLLAMA_OK:
             try:
                 engine = _OllamaEngine(url=self.ollama_url)
@@ -219,11 +235,11 @@ class IntegradorIA:
         )
         return MODELO_PADRAO
 
-    # ─── Verificação de disponibilidade ──────────────────────────────────────
+    # â”€â”€â”€ VerificaÃ§Ã£o de disponibilidade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def is_available(self) -> bool:
         """
-        Verifica se algum provedor de IA está disponível (Gemini ou Ollama local).
+        Verifica se algum provedor de IA estÃ¡ disponÃ­vel (Gemini ou Ollama local).
 
         Testa Gemini primeiro (se api_key configurada), depois Ollama.
 
@@ -245,16 +261,16 @@ class IntegradorIA:
 
         return False
 
-    # ─── Utilitários de erro ──────────────────────────────────────────────────
+    # â”€â”€â”€ UtilitÃ¡rios de erro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @staticmethod
     def _extrair_retry_delay(msg_erro: str) -> int:
         """
         Extrai o retryDelay sugerido pela API Gemini em erros 429.
-        Exemplo: 'Please retry in 36.396059883s.' → 37
+        Exemplo: 'Please retry in 36.396059883s.' â†’ 37
 
         Returns:
-            Segundos a aguardar (mínimo 5, máximo 120). Padrão 30 se não encontrado.
+            Segundos a aguardar (mÃ­nimo 5, mÃ¡ximo 120). PadrÃ£o 30 se nÃ£o encontrado.
         """
         import re as _re
         m = _re.search(r"retry[^\d]*(\d+(?:\.\d+)?)\s*s", msg_erro, _re.IGNORECASE)
@@ -269,10 +285,10 @@ class IntegradorIA:
 
     @staticmethod
     def _eh_modelo_invalido(msg_erro: str) -> bool:
-        """Retorna True para erros 404 NOT_FOUND (modelo não existe)."""
+        """Retorna True para erros 404 NOT_FOUND (modelo nÃ£o existe)."""
         return "404" in msg_erro or "NOT_FOUND" in msg_erro
 
-    # ─── Chamada base à IA (com rate limit e troca de modelo) ────────────────
+    # â”€â”€â”€ Chamada base Ã  IA (com rate limit e troca de modelo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _chamar_ia(
         self,
@@ -281,12 +297,12 @@ class IntegradorIA:
         max_tokens: int = MAX_TOKENS,
     ) -> Optional[str]:
         """
-        Executa uma chamada à IA com rate limiting.
-        Em caso de 429 (cota), espera o retryDelay da API e tenta o próximo modelo.
-        Em caso de 404 (modelo inválido), troca de modelo imediatamente.
+        Executa uma chamada Ã  IA com rate limiting.
+        Em caso de 429 (cota), espera o retryDelay da API e tenta o prÃ³ximo modelo.
+        Em caso de 404 (modelo invÃ¡lido), troca de modelo imediatamente.
 
         Returns:
-            Texto da resposta ou None em caso de erro irrecuperável.
+            Texto da resposta ou None em caso de erro irrecuperÃ¡vel.
         """
         # Rate limiting
         agora = time.time()
@@ -320,7 +336,7 @@ class IntegradorIA:
         except Exception as e:
             msg = str(e)
 
-            # 429 — cota esgotada: respeitar retryDelay da API e tentar próximo modelo
+            # 429 â€” cota esgotada: respeitar retryDelay da API e tentar prÃ³ximo modelo
             if self._eh_quota_esgotada(msg):
                 delay = self._extrair_retry_delay(msg)
                 self.log.warning(
@@ -328,33 +344,33 @@ class IntegradorIA:
                     f"Aguardando {delay}s sugeridos pela API..."
                 )
                 time.sleep(delay)
-                # Tentar próximo modelo disponível
+                # Tentar prÃ³ximo modelo disponÃ­vel
                 proximo = self._proximo_modelo()
                 if proximo:
                     self.log.info(
-                        f"[IntegradorIA] Trocando modelo: '{self.modelo}' → '{proximo}'"
+                        f"[IntegradorIA] Trocando modelo: '{self.modelo}' â†’ '{proximo}'"
                     )
                     self.modelo = proximo
                 return None  # sinaliza para _chamar_com_retry tentar novamente
 
-            # 404 — modelo não existe: trocar imediatamente, sem espera
+            # 404 â€” modelo nÃ£o existe: trocar imediatamente, sem espera
             if self._eh_modelo_invalido(msg):
                 proximo = self._proximo_modelo()
                 if proximo:
                     self.log.warning(
-                        f"[IntegradorIA] Modelo '{self.modelo}' não encontrado. "
+                        f"[IntegradorIA] Modelo '{self.modelo}' nÃ£o encontrado. "
                         f"Trocando para '{proximo}'."
                     )
                     self.modelo = proximo
                 else:
-                    self.log.error("[IntegradorIA] Nenhum modelo alternativo disponível.")
+                    self.log.error("[IntegradorIA] Nenhum modelo alternativo disponÃ­vel.")
                 return None
 
             # Outros erros
-            self.log.warning(f"[IntegradorIA] Falha na chamada à IA: {msg[:200]}")
+            self.log.warning(f"[IntegradorIA] Falha na chamada Ã  IA: {msg[:200]}")
             return None
 
-        # ── Fallback: Ollama local ────────────────────────────────────────────
+        # â”€â”€ Fallback: Ollama local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if self._ollama is not None:
             resultado = self._ollama.gerar(prompt=conteudo, max_tokens=max_tokens)
             if resultado:
@@ -364,15 +380,15 @@ class IntegradorIA:
 
     def _proximo_modelo(self) -> Optional[str]:
         """
-        Retorna o próximo modelo da lista MODELOS_FALLBACK após o atual.
-        Retorna None se já estiver no último.
+        Retorna o prÃ³ximo modelo da lista MODELOS_FALLBACK apÃ³s o atual.
+        Retorna None se jÃ¡ estiver no Ãºltimo.
         """
         try:
             idx = MODELOS_FALLBACK.index(self.modelo)
             if idx + 1 < len(MODELOS_FALLBACK):
                 return MODELOS_FALLBACK[idx + 1]
         except ValueError:
-            # Modelo atual não está na lista — começa do início
+            # Modelo atual nÃ£o estÃ¡ na lista â€” comeÃ§a do inÃ­cio
             if MODELOS_FALLBACK:
                 return MODELOS_FALLBACK[0]
         return None
@@ -385,13 +401,13 @@ class IntegradorIA:
         max_tentativas: int = MAX_TENTATIVAS,
     ) -> Optional[str]:
         """
-        Chamada à IA com retry inteligente:
+        Chamada Ã  IA com retry inteligente:
           - 429 (cota): aguarda retryDelay da API + troca modelo automaticamente
           - 404 (modelo): troca modelo imediatamente
-          - Outros: backoff exponencial (10s → 20s → 40s → 80s → 160s)
+          - Outros: backoff exponencial (10s â†’ 20s â†’ 40s â†’ 80s â†’ 160s)
 
         Returns:
-            Texto da resposta ou None após todas as tentativas.
+            Texto da resposta ou None apÃ³s todas as tentativas.
         """
         for tentativa in range(1, max_tentativas + 1):
             modelo_antes = self.modelo
@@ -400,7 +416,7 @@ class IntegradorIA:
             if resposta:
                 return resposta
 
-            # Se trocou de modelo, não conta como tentativa extra
+            # Se trocou de modelo, nÃ£o conta como tentativa extra
             if self.modelo != modelo_antes:
                 self.log.info(
                     f"[IntegradorIA] Modelo trocado para '{self.modelo}'. "
@@ -422,11 +438,11 @@ class IntegradorIA:
 
         self.log.error(
             f"[IntegradorIA] Todas as {max_tentativas} tentativas falharam. "
-            f"Último modelo tentado: '{self.modelo}'."
+            f"Ãšltimo modelo tentado: '{self.modelo}'."
         )
         return None
 
-    # ─── Fase 1 com IA ────────────────────────────────────────────────────────
+    # â”€â”€â”€ Fase 1 com IA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def processar_fase1(
         self,
@@ -435,13 +451,13 @@ class IntegradorIA:
         topicos_ids: Optional[List[int]] = None,
     ) -> Dict[str, Any]:
         """
-        Enriquece tópicos da Fase 1 com análise IA.
-        Se a IA falhar, registra para reprocessamento futuro (não bloqueia).
+        Enriquece tÃ³picos da Fase 1 com anÃ¡lise IA.
+        Se a IA falhar, registra para reprocessamento futuro (nÃ£o bloqueia).
 
         Args:
             doc: Dict do documento {'nome', 'caminho', 'tipo'}
             laudo_id: FK laudos.id
-            topicos_ids: IDs específicos para enriquecer (None = todos do laudo)
+            topicos_ids: IDs especÃ­ficos para enriquecer (None = todos do laudo)
 
         Returns:
             Dict com contadores de sucesso e falha.
@@ -456,7 +472,7 @@ class IntegradorIA:
         }
 
         if not self.is_available():
-            self.log.warning("[IntegradorIA] Fase 1 IA: serviço indisponível. Usando fallback.")
+            self.log.warning("[IntegradorIA] Fase 1 IA: serviÃ§o indisponÃ­vel. Usando fallback.")
             stats["fallback_offline"] += 1
             return stats
 
@@ -466,7 +482,7 @@ class IntegradorIA:
                 query = f"SELECT id, texto_original, palavras_chave FROM topicos WHERE id IN ({','.join('?'*len(topicos_ids))})"
                 topicos = conn.execute(query, topicos_ids).fetchall()
             else:
-                # Busca tópicos que ainda NÃO foram processados pelo llama (Fase 1 IA).
+                # Busca tÃ³picos que ainda NÃƒO foram processados pelo llama (Fase 1 IA).
                 # Usa NOT EXISTS em laudos_estruturado para ser independente do status_processamento
                 # legado (fase_3_ia, completo, etc. do sistema antigo).
                 try:
@@ -485,7 +501,7 @@ class IntegradorIA:
                         (laudo_id,)
                     ).fetchall()
                 except Exception:
-                    # Fallback: laudos_estruturado pode não existir ainda
+                    # Fallback: laudos_estruturado pode nÃ£o existir ainda
                     topicos = conn.execute(
                         """SELECT id, texto_original, palavras_chave
                            FROM topicos WHERE laudo_id = ?
@@ -511,11 +527,11 @@ class IntegradorIA:
 
         tipo_doc = doc.get("tipo", "") if isinstance(doc, dict) else ""
         total = len(topicos_com_hier)
-        self.log.info(f"[IntegradorIA] Fase 1: laudo_id={laudo_id}, {total} tópico(s) para processar.")
-        print(f"\n  [llama] Laudo ID {laudo_id} — {total} tópico(s) para análise IA")
+        self.log.info(f"[IntegradorIA] Fase 1: laudo_id={laudo_id}, {total} tÃ³pico(s) para processar.")
+        print(f"\n  [llama] Laudo ID {laudo_id} â€” {total} tÃ³pico(s) para anÃ¡lise IA")
 
         for idx, (tid, texto, palavras, hierarquia) in enumerate(topicos_com_hier, 1):
-            # Rótulo curto para exibição (hierarquia ou início do texto)
+            # RÃ³tulo curto para exibiÃ§Ã£o (hierarquia ou inÃ­cio do texto)
             label = (hierarquia or texto or "")[:60].replace("\n", " ").strip()
             print(f"  [llama] {idx}/{total} | {label}")
             try:
@@ -523,10 +539,10 @@ class IntegradorIA:
                 if not resultado:
                     self._marcar_fallback(tid, "fase_1_offline")
                     stats["fallback_offline"] += 1
-                    print(f"         → ERRO (sem resposta IA)")
+                    print(f"         â†’ ERRO (sem resposta IA)")
                     continue
 
-                # ── Mapear resultado do módulo de controle de qualidade ──────
+                # â”€â”€ Mapear resultado do mÃ³dulo de controle de qualidade â”€â”€â”€â”€â”€â”€
                 class_final  = resultado.get("classificacao_final", "")
                 class_texto  = resultado.get("classificacao_texto", "")
                 score_final  = float(resultado.get("score_final", 0.0))
@@ -535,7 +551,7 @@ class IntegradorIA:
                 patologias   = resultado.get("patologias", [])
                 normas       = resultado.get("normas", [])
 
-                # Decisão de relevância baseada no score e classificação
+                # DecisÃ£o de relevÃ¢ncia baseada no score e classificaÃ§Ã£o
                 nao_utilizavel = (
                     class_final == "nao_utilizavel"
                     or class_texto == "inadequado"
@@ -547,55 +563,55 @@ class IntegradorIA:
                     motivo = justificativa or f"{class_texto} (score={score_final:.1f})"
                     self._marcar_irrelevante(tid, motivo)
                     stats["irrelevantes"] += 1
-                    print(f"         → DESCARTADO [{class_texto}] score={score_final:.1f} | {motivo[:50]}")
+                    print(f"         â†’ DESCARTADO [{class_texto}] score={score_final:.1f} | {motivo[:50]}")
                 elif score_final < 7.5:
-                    # uso_limitado ou uso_complementar → salva com flag de revisão
+                    # uso_limitado ou uso_complementar â†’ salva com flag de revisÃ£o
                     self._salvar_enriquecimento_fase1(tid, laudo_id, resultado, status_override="fase_1_revisao")
                     stats["revisao"] += 1
                     if sugestao and "[descartar]" not in sugestao.lower():
                         stats["prompts_refinamento"].append({"topico_id": tid, "prompt": sugestao[:200]})
-                    print(f"         → REVISAO [{class_final}] score={score_final:.1f} | {class_texto}")
+                    print(f"         â†’ REVISAO [{class_final}] score={score_final:.1f} | {class_texto}")
                 else:
                     # uso_recomendado ou uso_essencial
                     self._salvar_enriquecimento_fase1(tid, laudo_id, resultado)
                     stats["enriquecidos"] += 1
-                    print(f"         → OK [{class_final}] score={score_final:.1f} | "
+                    print(f"         â†’ OK [{class_final}] score={score_final:.1f} | "
                           f"patologias={patologias[:2]} | normas={normas[:2]}")
 
             except Exception as e:
-                self.log.error(f"[IntegradorIA] Erro Fase 1 tópico {tid}: {e}", exc_info=True)
+                self.log.error(f"[IntegradorIA] Erro Fase 1 tÃ³pico {tid}: {e}", exc_info=True)
                 self._marcar_fallback(tid, "fase_1_offline")
                 stats["falhas_ia"] += 1
-                print(f"         → ERRO: {str(e)[:60]}")
+                print(f"         â†’ ERRO: {str(e)[:60]}")
 
         return stats
 
     def _enriquecer_topico_fase1(self, texto: str, hierarquia: str = "", tipo_doc: str = "") -> Optional[Dict]:
         """
-        Verificação integrada de relevância + qualidade + extração estruturada (llama3.2:3b).
+        VerificaÃ§Ã£o integrada de relevÃ¢ncia + qualidade + extraÃ§Ã£o estruturada (llama3.2:3b).
 
-        O modelo decide em uma única chamada:
-          1. Se o texto É RELEVANTE para o banco pericial
-          2. Se a qualidade da extração é OK / PARCIAL / RUIM
-          3. Extrai as entidades técnicas (se relevante)
-          4. Gera prompt de consulta para tópicos com qualidade < OK
+        O modelo decide em uma Ãºnica chamada:
+          1. Se o texto Ã‰ RELEVANTE para o banco pericial
+          2. Se a qualidade da extraÃ§Ã£o Ã© OK / PARCIAL / RUIM
+          3. Extrai as entidades tÃ©cnicas (se relevante)
+          4. Gera prompt de consulta para tÃ³picos com qualidade < OK
 
         Retorna dict com campo 'relevante' (bool) e 'qualidade' (str).
-        Quando relevante=False → chamador marca status 'fase_1_irrelevante'.
-        Quando qualidade != OK → chamador salva com prompt_refinamento preenchido.
+        Quando relevante=False â†’ chamador marca status 'fase_1_irrelevante'.
+        Quando qualidade != OK â†’ chamador salva com prompt_refinamento preenchido.
         """
         if len(texto.strip()) < 30:
             return None
 
-        # Limite ampliado para 2000 chars — suficiente para julgar o conteúdo
-        # técnico completo sem truncar a parte relevante do tópico
+        # Limite ampliado para 2000 chars â€” suficiente para julgar o conteÃºdo
+        # tÃ©cnico completo sem truncar a parte relevante do tÃ³pico
         texto_trunc = texto[:2000]
         hier_label  = hierarquia[:120] if hierarquia else "nao informado"
         tipo_label  = tipo_doc or "nao informado"
 
-        # ── MÓDULO DE CONTROLE DE QUALIDADE TEXTUAL E CLASSIFICAÇÃO TÉCNICA ──
-        # Regra crítica: texto original NÃO é modificado.
-        # Análise retorna APENAS metadados de qualidade + entidades extraídas.
+        # â”€â”€ MÃ“DULO DE CONTROLE DE QUALIDADE TEXTUAL E CLASSIFICAÃ‡ÃƒO TÃ‰CNICA â”€â”€
+        # Regra crÃ­tica: texto original NÃƒO Ã© modificado.
+        # AnÃ¡lise retorna APENAS metadados de qualidade + entidades extraÃ­das.
         prompt = (
             f"DOC: {tipo_label} | SECAO: {hier_label}\n"
             f"TEXTO:\n{texto_trunc}\n\n"
@@ -611,15 +627,15 @@ class IntegradorIA:
             f"score_final=(0.4*aplicabilidade)+(0.3*fundamentacao)+(0.3*qualidade)\n"
             f"classificacao_final: <4=nao_utilizavel|4-6=uso_limitado|6-7.5=uso_complementar|7.5-9=uso_recomendado|>9=uso_essencial\n"
             f"Se introducao_generica ou inadequado E score<6: nao_utilizavel\n"
-            f"patologias/estruturas/materiais/locais/normas: listas de strings simples extraidas do texto (ex: [\"fissura\",\"NBR 6118\"]) — NUNCA objetos JSON\n"
-            f"palavras_chave_primarias: 3-5 strings simples em portugues (ex: [\"impermeabilizacao\",\"laje\"]) — NUNCA objetos\n"
+            f"patologias/estruturas/materiais/locais/normas: listas de strings simples extraidas do texto (ex: [\"fissura\",\"NBR 6118\"]) â€” NUNCA objetos JSON\n"
+            f"palavras_chave_primarias: 3-5 strings simples em portugues (ex: [\"impermeabilizacao\",\"laje\"]) â€” NUNCA objetos\n"
             f"titulo_sugerido: max 60 chars em portugues"
         )
 
         sistema = (
-            "Você é um especialista em engenharia civil e perícia técnica brasileira. "
-            "Analise o trecho técnico fornecido e responda EXCLUSIVAMENTE em português brasileiro. "
-            "Retorne APENAS um JSON válido, sem texto antes ou depois, sem markdown, sem explicações."
+            "VocÃª Ã© um especialista em engenharia civil e perÃ­cia tÃ©cnica brasileira. "
+            "Analise o trecho tÃ©cnico fornecido e responda EXCLUSIVAMENTE em portuguÃªs brasileiro. "
+            "Retorne APENAS um JSON vÃ¡lido, sem texto antes ou depois, sem markdown, sem explicaÃ§Ãµes."
         )
 
         if self._ollama:
@@ -636,8 +652,8 @@ class IntegradorIA:
         self, topico_id: int, laudo_id: int, dados: Dict, status_override: str = ""
     ) -> None:
         """
-        Salva extração completa da Fase 1:
-        - topicos: palavras-chave, titulo, sumário, status
+        Salva extraÃ§Ã£o completa da Fase 1:
+        - topicos: palavras-chave, titulo, sumÃ¡rio, status
         - laudos_estruturado: registro estruturado completo
         """
         conn = self._conn()
@@ -645,14 +661,14 @@ class IntegradorIA:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
 
         try:
-            # ── Atualizar topicos ─────────────────────────────────────────────
+            # â”€â”€ Atualizar topicos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             pks_primarias   = _str_lista(dados.get("palavras_chave_primarias", []))
             pks_secundarias = _str_lista(dados.get("palavras_chave_secundarias", []))
             todas_pks = list(dict.fromkeys(pks_primarias + pks_secundarias))  # deduplica
 
             status_proc  = status_override if status_override else "fase_1_ia"
             score_final  = float(dados.get("score_final", 0.0))
-            # Mapeamento score → ia_score_confianca (0.0-1.0)
+            # Mapeamento score â†’ ia_score_confianca (0.0-1.0)
             ia_score = min(1.0, score_final / 10.0)
             updates: Dict[str, Any] = {
                 "status_processamento": status_proc,
@@ -662,7 +678,7 @@ class IntegradorIA:
             }
             if dados.get("titulo_sugerido"):
                 updates["titulo_topico"] = dados["titulo_sugerido"][:500]
-            # INTEGRIDADE: NÃO sobrescrever texto_reescrito — preserva conteúdo original
+            # INTEGRIDADE: NÃƒO sobrescrever texto_reescrito â€” preserva conteÃºdo original
             if todas_pks:
                 existente = conn.execute(
                     "SELECT palavras_chave FROM topicos WHERE id=?", (topico_id,)
@@ -675,7 +691,7 @@ class IntegradorIA:
             conn.execute(f"UPDATE topicos SET {set_clause} WHERE id=?",
                          list(updates.values()) + [topico_id])
 
-            # ── Inserir/atualizar laudos_estruturado ──────────────────────────
+            # â”€â”€ Inserir/atualizar laudos_estruturado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             existente_est = conn.execute(
                 "SELECT id FROM laudos_estruturado WHERE topico_id=?", (topico_id,)
             ).fetchone()
@@ -691,8 +707,8 @@ class IntegradorIA:
                 "palavras_chave_primarias": json.dumps(pks_primarias,                  ensure_ascii=False),
                 "palavras_chave_secundarias": json.dumps(pks_secundarias,              ensure_ascii=False),
                 "titulo_sugerido":          dados.get("titulo_sugerido", ""),
-                "sumario":                  dados.get("justificativa", ""),  # análise técnica, não reescrita
-                # Campos do módulo de controle de qualidade
+                "sumario":                  dados.get("justificativa", ""),  # anÃ¡lise tÃ©cnica, nÃ£o reescrita
+                # Campos do mÃ³dulo de controle de qualidade
                 "classificacao_texto":      dados.get("classificacao_texto", ""),
                 "score_qualidade":          float(dados.get("qualidade_tecnica", 0)),
                 "score_fundamentacao":      float(dados.get("grau_fundamentacao", 0)),
@@ -726,7 +742,7 @@ class IntegradorIA:
                 conn.execute(f"INSERT INTO laudos_estruturado ({cols}) VALUES ({phs})",
                              list(campos.values()))
 
-            # ── Registrar normas em contextos_normativos ──────────────────────
+            # â”€â”€ Registrar normas em contextos_normativos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             for norma in _str_lista(dados.get("normas", []))[:5]:
                 norma = norma.strip()
                 if len(norma) >= 3:
@@ -738,7 +754,7 @@ class IntegradorIA:
                         conn.execute(
                             "INSERT INTO contextos_normativos (norma, descricao, laudo_origem_id, confianca) "
                             "VALUES (?,?,?,?)",
-                            (norma, f"Referenciada em tópico: {dados.get('titulo_sugerido','')}", laudo_id, "MEDIA")
+                            (norma, f"Referenciada em tÃ³pico: {dados.get('titulo_sugerido','')}", laudo_id, "MEDIA")
                         )
 
             conn.commit()
@@ -748,30 +764,32 @@ class IntegradorIA:
         finally:
             conn.close()
 
-    # ─── Fase 2 com IA (mistral:7b) ───────────────────────────────────────────
+    # â”€â”€â”€ Fase 2 com IA (mistral:7b) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def processar_fase2_ia(
         self,
         limite: int = 100,
     ) -> Dict[str, Any]:
         """
-        Fase 2 IA: refinamento semântico com mistral:7b.
+        Fase 2 IA: refinamento semÃ¢ntico com mistral:7b.
 
-        Reanalisa itens com confiança < ALTA, valida normas, detecta causas
-        raiz, mapeia relações entre patologias e gera score de risco.
+        Reanalisa itens com confianÃ§a < ALTA, valida normas, detecta causas
+        raiz, mapeia relaÃ§Ãµes entre patologias e gera score de risco.
 
         Returns:
-            Dict com contadores refinados, falhas e confiança média.
+            Dict com contadores refinados, falhas e confianÃ§a mÃ©dia.
         """
         if not self.is_available():
-            raise RuntimeError("[IntegradorIA] Fase 2 IA requer Ollama disponível.")
+            raise RuntimeError("[IntegradorIA] Fase 2 IA requer Ollama disponÃ­vel.")
 
         self.log.info("[IntegradorIA] Fase 2 IA: refinamento com mistral iniciado.")
         stats: Dict[str, Any] = {"refinados": 0, "falhas": 0, "confiancas": []}
+        inicio = time.perf_counter()
+        lote_commit = max(1, FASE2_COMMIT_LOTE)
 
         conn = self._conn()
         try:
-            # Buscar itens com confiança não-ALTA ou sem processamento fase 2
+            # Buscar itens com confianÃ§a nÃ£o-ALTA ou sem processamento fase 2
             rows = conn.execute(
                 """SELECT le.id, le.topico_id, le.laudo_id,
                           le.patologias, le.estruturas, le.normas_identificadas,
@@ -791,37 +809,88 @@ class IntegradorIA:
                    LIMIT ?""",
                 (limite,)
             ).fetchall()
+
+            total = len(rows)
+            self.log.info(
+                "[IntegradorIA] Fase 2 IA: %s tÃ³pico(s) para refinar. "
+                "tokens=%s texto_max=%s commit_lote=%s",
+                total,
+                FASE2_MAX_TOKENS,
+                FASE2_TEXTO_MAX,
+                lote_commit,
+            )
+            if total == 0:
+                stats["confianca_media"] = 0.0
+                stats["duracao_s"] = round(time.perf_counter() - inicio, 2)
+                return stats
+
+            laudo_ids = sorted({int(row[2]) for row in rows if row[2] is not None})
+            normas_cache = self._carregar_normas_cache(conn, laudo_ids)
+
+            for idx, row in enumerate(rows, 1):
+                est_id, topico_id, laudo_id, patologias_j, estruturas_j, normas_j, \
+                    sumario, confianca, texto, hierarquia = row
+                try:
+                    resultado = self._refinar_topico_fase2(
+                        texto or "", hierarquia or "", sumario or "",
+                        patologias_j, normas_j, confianca
+                    )
+                    if resultado:
+                        conn.execute("SAVEPOINT f2_item")
+                        try:
+                            self._salvar_refinamento_fase2_conn(
+                                conn=conn,
+                                est_id=est_id,
+                                topico_id=topico_id,
+                                laudo_id=laudo_id,
+                                dados=resultado,
+                                normas_cache=normas_cache,
+                            )
+                            conn.execute("RELEASE SAVEPOINT f2_item")
+                            stats["refinados"] += 1
+                            stats["confiancas"].append(resultado.get("confianca_refinada", 0.0))
+                        except Exception:
+                            conn.execute("ROLLBACK TO SAVEPOINT f2_item")
+                            conn.execute("RELEASE SAVEPOINT f2_item")
+                            raise
+                    else:
+                        stats["falhas"] += 1
+                except Exception as e:
+                    self.log.error(f"[IntegradorIA] Fase 2 IA erro tÃ³pico {topico_id}: {e}")
+                    stats["falhas"] += 1
+
+                if idx % lote_commit == 0:
+                    conn.commit()
+
+                if idx == total or idx % 10 == 0:
+                    decorrido = time.perf_counter() - inicio
+                    media_item = decorrido / idx
+                    eta = max(0.0, media_item * (total - idx))
+                    self.log.info(
+                        "[IntegradorIA] Fase 2 progresso: %s/%s | refinados=%s | falhas=%s | "
+                        "decorrido=%.1fs | eta=%.1fs",
+                        idx,
+                        total,
+                        stats["refinados"],
+                        stats["falhas"],
+                        decorrido,
+                        eta,
+                    )
+
+            conn.commit()
         finally:
             conn.close()
-
-        self.log.info(f"[IntegradorIA] Fase 2 IA: {len(rows)} tópico(s) para refinar.")
-
-        for row in rows:
-            est_id, topico_id, laudo_id, patologias_j, estruturas_j, normas_j, \
-                sumario, confianca, texto, hierarquia = row
-            try:
-                resultado = self._refinar_topico_fase2(
-                    texto or "", hierarquia or "", sumario or "",
-                    patologias_j, normas_j, confianca
-                )
-                if resultado:
-                    self._salvar_refinamento_fase2(est_id, topico_id, laudo_id, resultado)
-                    stats["refinados"] += 1
-                    stats["confiancas"].append(resultado.get("confianca_refinada", 0.0))
-                else:
-                    stats["falhas"] += 1
-            except Exception as e:
-                self.log.error(f"[IntegradorIA] Fase 2 IA erro tópico {topico_id}: {e}")
-                stats["falhas"] += 1
 
         stats["confianca_media"] = (
             sum(stats["confiancas"]) / len(stats["confiancas"])
             if stats["confiancas"] else 0.0
         )
+        stats["duracao_s"] = round(time.perf_counter() - inicio, 2)
         self.log.info(
-            f"[IntegradorIA] Fase 2 IA concluída. "
+            f"[IntegradorIA] Fase 2 IA concluÃ­da. "
             f"Refinados: {stats['refinados']} | Falhas: {stats['falhas']} | "
-            f"Conf.média: {stats['confianca_media']:.2f}"
+            f"Conf.mÃ©dia: {stats['confianca_media']:.2f} | "
+            f"DuraÃ§Ã£o: {stats['duracao_s']:.1f}s"
         )
         return stats
 
@@ -835,8 +904,8 @@ class IntegradorIA:
         confianca_fase1: str,
     ) -> Optional[Dict]:
         """
-        Refinamento semântico profundo com mistral:7b.
-        Valida normas, detecta causa raiz, mapeia relações, gera score de risco.
+        Refinamento semÃ¢ntico profundo com mistral:7b.
+        Valida normas, detecta causa raiz, mapeia relaÃ§Ãµes, gera score de risco.
         """
         if len(texto.strip()) < 30:
             return None
@@ -848,129 +917,178 @@ class IntegradorIA:
             patologias, normas = [], []
 
         prompt = (
-            f"Refine a análise técnica pericial do tópico abaixo.\n\n"
+            f"Refine a anÃ¡lise tÃ©cnica pericial do tÃ³pico abaixo.\n\n"
             f"HIERARQUIA: {hierarquia}\n"
-            f"CONFIANÇA FASE 1: {confianca_fase1}\n"
+            f"CONFIANÃ‡A FASE 1: {confianca_fase1}\n"
             f"PATOLOGIAS IDENTIFICADAS: {', '.join(patologias) or 'nenhuma'}\n"
             f"NORMAS IDENTIFICADAS: {', '.join(normas) or 'nenhuma'}\n"
-            f"SUMÁRIO FASE 1: {sumario_fase1}\n\n"
-            f"TEXTO COMPLETO:\n{texto[:1200]}\n\n"
+            f"SUMÃRIO FASE 1: {sumario_fase1}\n\n"
+            f"TEXTO COMPLETO:\n{texto[:FASE2_TEXTO_MAX]}\n\n"
             f"Exemplo de resposta correta:\n"
-            f'{{"causa_raiz":"Carbonatação do concreto com redução do pH abaixo de 9,5",'
-            f'"nexo_causal":"A carbonatação despassivou a armadura, iniciando processo '
-            f'corrosivo que gerou expansão das barras e fissuração do cobrimento.",'
+            f'{{"causa_raiz":"CarbonataÃ§Ã£o do concreto com reduÃ§Ã£o do pH abaixo de 9,5",'
+            f'"nexo_causal":"A carbonataÃ§Ã£o despassivou a armadura, iniciando processo '
+            f'corrosivo que gerou expansÃ£o das barras e fissuraÃ§Ã£o do cobrimento.",'
             f'"relacoes_patologicas":["desplacamento de cobrimento","manchas de ferrugem"],'
             f'"score_risco":"ALTO","normas_validadas":["NBR 6118","NBR 6209"],'
             f'"recomendacao":"Remover concreto carbonatado, tratar armadura com inibidor '
             f'e aplicar concreto de reparo com fck >= 30 MPa.",'
-            f'"confianca_refinada":0.85,"enriquecimento":"Vida útil de reparo: 15-20 anos"}}\n\n'
-            f"Retorne APENAS o JSON válido preenchido, sem markdown, sem texto antes ou depois:\n"
+            f'"confianca_refinada":0.85,"enriquecimento":"Vida Ãºtil de reparo: 15-20 anos"}}\n\n'
+            f"Retorne APENAS o JSON vÃ¡lido preenchido, sem markdown, sem texto antes ou depois:\n"
             f'{{"causa_raiz":"","nexo_causal":"",'
             f'"relacoes_patologicas":[],"score_risco":"BAIXO",'
             f'"normas_validadas":[],"recomendacao":"",'
             f'"confianca_refinada":0.0,"enriquecimento":""}}\n\n'
-            f"Definições:\n"
-            f"- causa_raiz: causa técnica principal objetiva em português (1 frase)\n"
-            f"- nexo_causal: explicação do mecanismo de dano em português (2-3 frases)\n"
+            f"DefiniÃ§Ãµes:\n"
+            f"- causa_raiz: causa tÃ©cnica principal objetiva em portuguÃªs (1 frase)\n"
+            f"- nexo_causal: explicaÃ§Ã£o do mecanismo de dano em portuguÃªs (2-3 frases)\n"
             f"- relacoes_patologicas: outras anomalias relacionadas ex: ['recalque','fissura']\n"
-            f"- score_risco: BAIXO/MEDIO/ALTO/CRITICO (impacto estrutural/segurança)\n"
+            f"- score_risco: BAIXO/MEDIO/ALTO/CRITICO (impacto estrutural/seguranÃ§a)\n"
             f"- normas_validadas: normas ABNT/NBR confirmadas ou novas ex: ['NBR 6118']\n"
-            f"- recomendacao: ação corretiva técnica em português (2-3 frases)\n"
-            f"- confianca_refinada: 0.0-1.0 (0.8=alta confiança, 0.5=média)\n"
-            f"- enriquecimento: informação adicional sobre prazos/custos/técnicas em português"
+            f"- recomendacao: aÃ§Ã£o corretiva tÃ©cnica em portuguÃªs (2-3 frases)\n"
+            f"- confianca_refinada: 0.0-1.0 (0.8=alta confianÃ§a, 0.5=mÃ©dia)\n"
+            f"- enriquecimento: informaÃ§Ã£o adicional sobre prazos/custos/tÃ©cnicas em portuguÃªs"
         )
 
         sistema = (
-            "Você é um engenheiro perito judicial especialista em patologias construtivas, "
-            "normas ABNT/NBR e IBAPE 2025. Realize refinamento semântico profundo. "
-            "Responda EXCLUSIVAMENTE em português brasileiro. "
-            "Retorne APENAS JSON válido, sem texto fora do JSON."
+            "VocÃª Ã© um engenheiro perito judicial especialista em patologias construtivas, "
+            "normas ABNT/NBR e IBAPE 2025. Realize refinamento semÃ¢ntico profundo. "
+            "Responda EXCLUSIVAMENTE em portuguÃªs brasileiro. "
+            "Retorne APENAS JSON vÃ¡lido, sem texto fora do JSON."
         )
 
         if self._ollama:
-            resposta = self._ollama.gerar_qualidade(prompt, sistema, max_tokens=800)
+            resposta = self._ollama.gerar_qualidade(prompt, sistema, max_tokens=FASE2_MAX_TOKENS)
         else:
-            resposta = self._chamar_ia(prompt, sistema, max_tokens=800)
+            resposta = self._chamar_ia(prompt, sistema, max_tokens=FASE2_MAX_TOKENS)
 
         if not resposta:
             return None
 
         return self._parsear_json(resposta, "Fase 2 refinamento")
 
-    def _salvar_refinamento_fase2(
-        self, est_id: int, topico_id: int, laudo_id: int, dados: Dict
+    def _carregar_normas_cache(
+        self,
+        conn: sqlite3.Connection,
+        laudo_ids: List[int],
+    ) -> Dict[int, set[str]]:
+        cache: Dict[int, set[str]] = {}
+        if not laudo_ids:
+            return cache
+
+        placeholders = ",".join("?" for _ in laudo_ids)
+        rows = conn.execute(
+            f"SELECT laudo_origem_id, norma FROM contextos_normativos "
+            f"WHERE laudo_origem_id IN ({placeholders})",
+            laudo_ids,
+        ).fetchall()
+        for lid, norma in rows:
+            if lid is None:
+                continue
+            chave = (norma or "").strip().lower()
+            if not chave:
+                continue
+            if lid not in cache:
+                cache[lid] = set()
+            cache[lid].add(chave)
+        return cache
+
+    def _salvar_refinamento_fase2_conn(
+        self,
+        conn: sqlite3.Connection,
+        est_id: int,
+        topico_id: int,
+        laudo_id: int,
+        dados: Dict,
+        normas_cache: Optional[Dict[int, set[str]]] = None,
     ) -> None:
-        """Persiste refinamento da Fase 2 em laudos_estruturado e topicos."""
-        conn = self._conn()
+        """Persiste refinamento da Fase 2 reutilizando conexao ja aberta."""
         modelo_f2 = self._ollama.modelo_qualidade if self._ollama else self.modelo_fase2
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
 
+        updates_est: Dict[str, Any] = {
+            "causa_raiz":          dados.get("causa_raiz", ""),
+            "nexo_causal":         dados.get("nexo_causal", ""),
+            "relacoes_patologicas": json.dumps(dados.get("relacoes_patologicas", []), ensure_ascii=False),
+            "score_risco":         dados.get("score_risco", "BAIXO"),
+            "recomendacao":        dados.get("recomendacao", ""),
+            "confianca_refinada":  float(dados.get("confianca_refinada", 0.0)),
+            "modelo_fase2":        modelo_f2,
+            "processado_fase2":    1,
+            "timestamp_fase2":     ts,
+        }
+
+        normas_val = _str_lista(dados.get("normas_validadas", []))
+        if normas_val:
+            updates_est["normas_identificadas"] = json.dumps(normas_val, ensure_ascii=False)
+
+        set_cl = ", ".join(f"{k}=?" for k in updates_est)
+        conn.execute(
+            f"UPDATE laudos_estruturado SET {set_cl} WHERE id=?",
+            list(updates_est.values()) + [est_id],
+        )
+
+        updates_top: Dict[str, Any] = {
+            "status_processamento": "fase_3_ia",
+            "ia_score_confianca":   float(dados.get("confianca_refinada", 0.0)),
+            "ia_modelo":            modelo_f2,
+            "ia_timestamp":         ts,
+        }
+        if dados.get("nexo_causal"):
+            updates_top["gut_nexo_json"] = json.dumps(
+                {
+                    "nexo_causal": dados["nexo_causal"],
+                    "causa_raiz": dados.get("causa_raiz", ""),
+                },
+                ensure_ascii=False,
+            )
+        if dados.get("recomendacao"):
+            atual = conn.execute(
+                "SELECT texto_reescrito FROM topicos WHERE id=?",
+                (topico_id,),
+            ).fetchone()
+            base = atual[0] if atual and atual[0] else ""
+            updates_top["texto_reescrito"] = (
+                f"{base}\n\nRecomendacao: {dados['recomendacao']}".strip()
+            )
+
+        set_cl2 = ", ".join(f"{k}=?" for k in updates_top)
+        conn.execute(
+            f"UPDATE topicos SET {set_cl2} WHERE id=?",
+            list(updates_top.values()) + [topico_id],
+        )
+
+        if normas_cache is None:
+            normas_cache = {}
+        cache_laudo = normas_cache.setdefault(int(laudo_id), set())
+        for norma in normas_val[:5]:
+            norma = (norma or "").strip()
+            if len(norma) < 3:
+                continue
+            chave_norma = norma.lower()
+            if chave_norma in cache_laudo:
+                continue
+            conn.execute(
+                "INSERT INTO contextos_normativos "
+                "(norma, descricao, aplicacao, laudo_origem_id, confianca) "
+                "VALUES (?,?,?,?,?)",
+                (norma, dados.get("nexo_causal", ""), dados.get("recomendacao", ""), laudo_id, "ALTA"),
+            )
+            cache_laudo.add(chave_norma)
+
+    def _salvar_refinamento_fase2(
+        self, est_id: int, topico_id: int, laudo_id: int, dados: Dict
+    ) -> None:
+        """Mantem compatibilidade: salva refinamento Fase 2 em conexao dedicada."""
+        conn = self._conn()
         try:
-            # ── Atualizar laudos_estruturado ──────────────────────────────────
-            updates_est: Dict[str, Any] = {
-                "causa_raiz":          dados.get("causa_raiz", ""),
-                "nexo_causal":         dados.get("nexo_causal", ""),
-                "relacoes_patologicas": json.dumps(dados.get("relacoes_patologicas", []), ensure_ascii=False),
-                "score_risco":         dados.get("score_risco", "BAIXO"),
-                "recomendacao":        dados.get("recomendacao", ""),
-                "confianca_refinada":  float(dados.get("confianca_refinada", 0.0)),
-                "modelo_fase2":        modelo_f2,
-                "processado_fase2":    1,
-                "timestamp_fase2":     ts,
-            }
-            # Enriquecer normas validadas
-            normas_val = _str_lista(dados.get("normas_validadas", []))
-            if normas_val:
-                updates_est["normas_identificadas"] = json.dumps(normas_val, ensure_ascii=False)
-
-            set_cl = ", ".join(f"{k}=?" for k in updates_est)
-            conn.execute(f"UPDATE laudos_estruturado SET {set_cl} WHERE id=?",
-                         list(updates_est.values()) + [est_id])
-
-            # ── Atualizar topicos ─────────────────────────────────────────────
-            updates_top: Dict[str, Any] = {
-                "status_processamento": "fase_3_ia",
-                "ia_score_confianca":   float(dados.get("confianca_refinada", 0.0)),
-                "ia_modelo":            modelo_f2,
-                "ia_timestamp":         ts,
-            }
-            if dados.get("nexo_causal"):
-                updates_top["gut_nexo_json"] = json.dumps(
-                    {"nexo_causal": dados["nexo_causal"],
-                     "causa_raiz": dados.get("causa_raiz", "")},
-                    ensure_ascii=False
-                )
-            if dados.get("recomendacao"):
-                # Acumular recomendação no texto_reescrito
-                atual = conn.execute(
-                    "SELECT texto_reescrito FROM topicos WHERE id=?", (topico_id,)
-                ).fetchone()
-                base = atual[0] if atual and atual[0] else ""
-                updates_top["texto_reescrito"] = (
-                    f"{base}\n\nRecomendacao: {dados['recomendacao']}".strip()
-                )
-
-            set_cl2 = ", ".join(f"{k}=?" for k in updates_top)
-            conn.execute(f"UPDATE topicos SET {set_cl2} WHERE id=?",
-                         list(updates_top.values()) + [topico_id])
-
-            # ── Atualizar contextos_normativos ────────────────────────────────
-            for norma in normas_val[:5]:
-                norma = norma.strip()
-                if len(norma) >= 3:
-                    existe = conn.execute(
-                        "SELECT id FROM contextos_normativos WHERE norma=? AND laudo_origem_id=?",
-                        (norma, laudo_id)
-                    ).fetchone()
-                    if not existe:
-                        conn.execute(
-                            "INSERT INTO contextos_normativos "
-                            "(norma, descricao, aplicacao, laudo_origem_id, confianca) "
-                            "VALUES (?,?,?,?,?)",
-                            (norma, dados.get("nexo_causal", ""),
-                             dados.get("recomendacao", ""), laudo_id, "ALTA")
-                        )
-
+            self._salvar_refinamento_fase2_conn(
+                conn=conn,
+                est_id=est_id,
+                topico_id=topico_id,
+                laudo_id=laudo_id,
+                dados=dados,
+                normas_cache=None,
+            )
             conn.commit()
         except Exception as e:
             self.log.error(f"[IntegradorIA] Falha ao salvar refinamento Fase 2: {e}")
@@ -978,15 +1096,13 @@ class IntegradorIA:
         finally:
             conn.close()
 
-    # ─── Utilitário de parsing JSON ───────────────────────────────────────────
-
     def _parsear_json(self, resposta: str, contexto: str) -> Optional[Dict]:
         """
-        Parseia JSON da resposta da IA com três tentativas progressivas:
-        1. json.loads direto após limpeza de markdown
-        2. Extração do bloco { ... } mais externo
-        3. Reconstrução campo a campo via regex (último recurso)
-        Retorna None apenas se nenhuma tentativa extrair qualquer dado útil.
+        Parseia JSON da resposta da IA com trÃªs tentativas progressivas:
+        1. json.loads direto apÃ³s limpeza de markdown
+        2. ExtraÃ§Ã£o do bloco { ... } mais externo
+        3. ReconstruÃ§Ã£o campo a campo via regex (Ãºltimo recurso)
+        Retorna None apenas se nenhuma tentativa extrair qualquer dado Ãºtil.
         """
         if not resposta or not resposta.strip():
             return None
@@ -1021,12 +1137,12 @@ class IntegradorIA:
                 except json.JSONDecodeError:
                     pass
 
-        # Tentativa 3: reconstrução campo a campo via regex
+        # Tentativa 3: reconstruÃ§Ã£o campo a campo via regex
         campos_extraidos: Dict[str, Any] = {}
         # Strings: "chave": "valor"
         for m in re.finditer(r'"(\w+)"\s*:\s*"([^"]*)"', limpa):
             campos_extraidos[m.group(1)] = m.group(2)
-        # Números: "chave": 7.5
+        # NÃºmeros: "chave": 7.5
         for m in re.finditer(r'"(\w+)"\s*:\s*(-?\d+(?:\.\d+)?)', limpa):
             if m.group(1) not in campos_extraidos:
                 try:
@@ -1048,12 +1164,12 @@ class IntegradorIA:
             return campos_extraidos
 
         self.log.warning(
-            f"[IntegradorIA] JSON inválido ({contexto}) — sem campos recuperáveis | "
+            f"[IntegradorIA] JSON invÃ¡lido ({contexto}) â€” sem campos recuperÃ¡veis | "
             f"resp: {resposta[:100]}"
         )
         return None
 
-    # ─── Fase 3 com IA ────────────────────────────────────────────────────────
+    # â”€â”€â”€ Fase 3 com IA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def processar_fase3(
         self,
@@ -1062,26 +1178,26 @@ class IntegradorIA:
         limite_por_chamada: int = 10,
     ) -> Dict[str, Any]:
         """
-        Fase 3: Refinamento semântico completo com IA (BLOQUEADORA).
-        Processa tópicos prioritários identificados pelo AnalisadorCompletude.
+        Fase 3: Refinamento semÃ¢ntico completo com IA (BLOQUEADORA).
+        Processa tÃ³picos prioritÃ¡rios identificados pelo AnalisadorCompletude.
 
         Args:
-            analisador: Instância de AnalisadorCompletude (opcional)
-            validador:  Instância de ValidadorDados (opcional)
-            limite_por_chamada: Tópicos por lote de chamada IA
+            analisador: InstÃ¢ncia de AnalisadorCompletude (opcional)
+            validador:  InstÃ¢ncia de ValidadorDados (opcional)
+            limite_por_chamada: TÃ³picos por lote de chamada IA
 
         Returns:
-            Dict com contadores de refinamentos e confiança média.
+            Dict com contadores de refinamentos e confianÃ§a mÃ©dia.
 
         Raises:
-            RuntimeError: Se IA estiver completamente indisponível.
+            RuntimeError: Se IA estiver completamente indisponÃ­vel.
         """
         if not self.is_available():
             raise RuntimeError(
-                "[IntegradorIA] Fase 3 requer IA disponível — indisponível no momento."
+                "[IntegradorIA] Fase 3 requer IA disponÃ­vel â€” indisponÃ­vel no momento."
             )
 
-        self.log.info("[IntegradorIA] Fase 3: Refinamento semântico com IA iniciado.")
+        self.log.info("[IntegradorIA] Fase 3: Refinamento semÃ¢ntico com IA iniciado.")
         stats = {
             "topicos_refinados": 0,
             "classificacoes": 0,
@@ -1089,13 +1205,13 @@ class IntegradorIA:
             "confiancas": [],
         }
 
-        # Obter lista de tópicos prioritários
+        # Obter lista de tÃ³picos prioritÃ¡rios
         if analisador:
             topico_ids = analisador.topicos_prioritarios_ia(limite=200)
         else:
             topico_ids = self._listar_topicos_fase3()
 
-        self.log.info(f"[IntegradorIA] Fase 3: {len(topico_ids)} tópico(s) para refinar.")
+        self.log.info(f"[IntegradorIA] Fase 3: {len(topico_ids)} tÃ³pico(s) para refinar.")
 
         # Processar em lotes
         for i in range(0, len(topico_ids), limite_por_chamada):
@@ -1113,18 +1229,18 @@ class IntegradorIA:
                         stats["falhas"] += 1
                 except Exception as e:
                     self.log.error(
-                        f"[IntegradorIA] Erro Fase 3 tópico {tid}: {e}", exc_info=True
+                        f"[IntegradorIA] Erro Fase 3 tÃ³pico {tid}: {e}", exc_info=True
                     )
                     stats["falhas"] += 1
 
-        # Calcular confiança média
+        # Calcular confianÃ§a mÃ©dia
         if stats["confiancas"]:
             stats["confianca_media"] = sum(stats["confiancas"]) / len(stats["confiancas"])
         else:
             stats["confianca_media"] = 0.0
 
         self.log.info(
-            "[IntegradorIA] Fase 3 concluída.",
+            "[IntegradorIA] Fase 3 concluÃ­da.",
             refinados=str(stats["topicos_refinados"]),
             falhas=str(stats["falhas"]),
             confianca=f"{stats.get('confianca_media', 0):.2f}",
@@ -1133,13 +1249,13 @@ class IntegradorIA:
 
     def _refinar_topico_fase3(self, topico_id: int) -> Optional[Dict]:
         """
-        Refinamento semântico profundo de um único tópico via IA.
+        Refinamento semÃ¢ntico profundo de um Ãºnico tÃ³pico via IA.
 
-        IMPORTANTE: Esta fase realiza enriquecimento semântico do texto
-        (sumário, nexo causal, normas relacionadas) para melhorar a recuperação
-        no banco de dados. Classificação de grau_risco, tipo_anomalia e
-        origem_patologica NÃO é realizada aqui — são responsabilidade exclusiva
-        das análises de imagem, GUT e IBAPE realizadas pelo perito.
+        IMPORTANTE: Esta fase realiza enriquecimento semÃ¢ntico do texto
+        (sumÃ¡rio, nexo causal, normas relacionadas) para melhorar a recuperaÃ§Ã£o
+        no banco de dados. ClassificaÃ§Ã£o de grau_risco, tipo_anomalia e
+        origem_patologica NÃƒO Ã© realizada aqui â€” sÃ£o responsabilidade exclusiva
+        das anÃ¡lises de imagem, GUT e IBAPE realizadas pelo perito.
         """
         conn = self._conn()
         try:
@@ -1160,26 +1276,26 @@ class IntegradorIA:
             return None
 
         prompt = (
-            f"Analise o trecho técnico pericial abaixo. Contexto: '{hierarquia}'.\n\n"
+            f"Analise o trecho tÃ©cnico pericial abaixo. Contexto: '{hierarquia}'.\n\n"
             f"TEXTO:\n{texto_base[:1000]}\n\n"
             f"Responda SOMENTE com JSON (sem markdown):\n"
             f'{{"nexo_causal":"","recomendacao_tecnica":"",'
             f'"normas_relacionadas":[],"palavras_chave":[],'
             f'"sumario_executivo":"","confianca":0.0}}\n\n'
-            f"Instruções:\n"
-            f"- nexo_causal: causa raiz técnica objetiva (1 frase)\n"
-            f"- recomendacao_tecnica: ação corretiva recomendada (1-2 frases)\n"
-            f"- normas_relacionadas: normas ABNT/IBAPE aplicáveis ex. ['NBR 6118']\n"
-            f"- palavras_chave: 5-10 termos técnicos adicionais para indexação\n"
-            f"- sumario_executivo: 2-3 frases descritivas para o relatório\n"
-            f"- confianca: 0.0 a 1.0 (certeza na análise)"
+            f"InstruÃ§Ãµes:\n"
+            f"- nexo_causal: causa raiz tÃ©cnica objetiva (1 frase)\n"
+            f"- recomendacao_tecnica: aÃ§Ã£o corretiva recomendada (1-2 frases)\n"
+            f"- normas_relacionadas: normas ABNT/IBAPE aplicÃ¡veis ex. ['NBR 6118']\n"
+            f"- palavras_chave: 5-10 termos tÃ©cnicos adicionais para indexaÃ§Ã£o\n"
+            f"- sumario_executivo: 2-3 frases descritivas para o relatÃ³rio\n"
+            f"- confianca: 0.0 a 1.0 (certeza na anÃ¡lise)"
         )
 
         sistema = (
-            "Você é um engenheiro perito judicial especialista em patologias "
-            "construtivas, NBR/ABNT e IBAPE. Seu papel é enriquecer o conteúdo "
-            "técnico para recuperação no banco de dados. "
-            "Retorne APENAS JSON válido, sem classificar gravidade ou risco."
+            "VocÃª Ã© um engenheiro perito judicial especialista em patologias "
+            "construtivas, NBR/ABNT e IBAPE. Seu papel Ã© enriquecer o conteÃºdo "
+            "tÃ©cnico para recuperaÃ§Ã£o no banco de dados. "
+            "Retorne APENAS JSON vÃ¡lido, sem classificar gravidade ou risco."
         )
 
         resposta = self._chamar_com_retry(prompt, sistema, max_tokens=500)
@@ -1195,18 +1311,18 @@ class IntegradorIA:
             return json.loads(limpa.strip())
         except json.JSONDecodeError:
             self.log.warning(
-                f"[IntegradorIA] JSON inválido Fase 3 tópico {topico_id}: {resposta[:100]}"
+                f"[IntegradorIA] JSON invÃ¡lido Fase 3 tÃ³pico {topico_id}: {resposta[:100]}"
             )
             return None
 
     def _salvar_refinamento_fase3(self, topico_id: int, dados: Dict) -> None:
         """
-        Persiste refinamento semântico da Fase 3 no banco.
+        Persiste refinamento semÃ¢ntico da Fase 3 no banco.
 
-        Apenas sumário, palavras-chave adicionais e referências normativas
-        são gravados. Campos de classificação (grau_risco, tipo_anomalia,
-        origem_patologica, mecanismo) são preservados como estão — não são
-        alterados pelo reprocessamento automático.
+        Apenas sumÃ¡rio, palavras-chave adicionais e referÃªncias normativas
+        sÃ£o gravados. Campos de classificaÃ§Ã£o (grau_risco, tipo_anomalia,
+        origem_patologica, mecanismo) sÃ£o preservados como estÃ£o â€” nÃ£o sÃ£o
+        alterados pelo reprocessamento automÃ¡tico.
         """
         conn = self._conn()
         try:
@@ -1217,7 +1333,7 @@ class IntegradorIA:
                 "ia_timestamp":         time.strftime("%Y-%m-%d %H:%M:%S"),
             }
 
-            # Enriquecer sumário executivo (texto_reescrito)
+            # Enriquecer sumÃ¡rio executivo (texto_reescrito)
             if dados.get("sumario_executivo"):
                 updates["texto_reescrito"] = dados["sumario_executivo"]
 
@@ -1236,7 +1352,7 @@ class IntegradorIA:
             vals = list(updates.values()) + [topico_id]
             conn.execute(f"UPDATE topicos SET {set_clause} WHERE id=?", vals)
 
-            # Salvar normas e recomendação em parametros_normativos
+            # Salvar normas e recomendaÃ§Ã£o em parametros_normativos
             laudo_id = conn.execute(
                 "SELECT laudo_id FROM topicos WHERE id=?", (topico_id,)
             ).fetchone()
@@ -1258,7 +1374,7 @@ class IntegradorIA:
             conn.close()
 
     def _listar_topicos_fase3(self, limite: int = 200) -> List[int]:
-        """Lista tópicos que ainda não passaram pela Fase 3."""
+        """Lista tÃ³picos que ainda nÃ£o passaram pela Fase 3."""
         conn = self._conn()
         try:
             rows = conn.execute(
@@ -1276,7 +1392,7 @@ class IntegradorIA:
             conn.close()
 
     def _marcar_fallback(self, topico_id: int, status: str) -> None:
-        """Marca tópico como fallback offline (IA falhou)."""
+        """Marca tÃ³pico como fallback offline (IA falhou)."""
         conn = self._conn()
         try:
             conn.execute(
@@ -1284,7 +1400,7 @@ class IntegradorIA:
                 (status, topico_id)
             )
             # Insere sentinela em laudos_estruturado para que o NOT EXISTS
-            # da próxima iteração exclua este tópico e evite loop infinito
+            # da prÃ³xima iteraÃ§Ã£o exclua este tÃ³pico e evite loop infinito
             conn.execute("""
                 INSERT INTO laudos_estruturado
                     (topico_id, laudo_id, processado_fase1, confianca_extracao, status_relevancia)
@@ -1301,7 +1417,7 @@ class IntegradorIA:
             conn.close()
 
     def _marcar_irrelevante(self, topico_id: int, motivo: str) -> None:
-        """Marca tópico como irrelevante (filtrado pela IA na Fase 1)."""
+        """Marca tÃ³pico como irrelevante (filtrado pela IA na Fase 1)."""
         conn = self._conn()
         try:
             conn.execute(
@@ -1310,7 +1426,7 @@ class IntegradorIA:
                 (topico_id,)
             )
             # Insere sentinela em laudos_estruturado para que o NOT EXISTS
-            # da próxima iteração exclua este tópico e evite loop infinito
+            # da prÃ³xima iteraÃ§Ã£o exclua este tÃ³pico e evite loop infinito
             conn.execute("""
                 INSERT INTO laudos_estruturado
                     (topico_id, laudo_id, processado_fase1, confianca_extracao, status_relevancia)
@@ -1326,10 +1442,11 @@ class IntegradorIA:
         finally:
             conn.close()
 
-    # ─── Utilitários ──────────────────────────────────────────────────────────
+    # â”€â”€â”€ UtilitÃ¡rios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
+

@@ -18,3 +18,7 @@
 /pdf_erros
 /pdf_processados
 /~$Banco_Pericial_Multimodal.xlsx
+frontend-next/.next
+frontend-next/node_module
+frontend-next/node_modules/
+frontend-next/node_modules/.bin/tsc.ps1

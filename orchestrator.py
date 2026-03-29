@@ -276,17 +276,22 @@ class OrquestradorReprocessamento:
         if self.integrador.is_available():
             op_id2 = self.log.iniciar_operacao(fase=2, modo="ia")
             try:
-                stats_ia = self.integrador.processar_fase2_ia(limite=150)
+                try:
+                    limite_f2 = max(10, int(os.getenv("IA_FASE2_LIMITE", "150")))
+                except Exception:
+                    limite_f2 = 150
+                stats_ia = self.integrador.processar_fase2_ia(limite=limite_f2)
                 refinados = stats_ia.get("refinados", 0)
                 self._stats["topicos_fase2"] += refinados
                 self.log.finalizar_operacao(
                     op_id2, "sucesso",
                     campos_modificados=refinados,
                     confianca_media=stats_ia.get("confianca_media", 0.0),
-                    mensagem=f"mistral refinamento | falhas={stats_ia.get('falhas', 0)}"
+                    mensagem=f"mistral refinamento | batch={limite_f2} | falhas={stats_ia.get('falhas', 0)}"
                 )
                 print(f"  [Fase 2 IA]     Refinados: {refinados} | "
-                      f"Conf: {stats_ia.get('confianca_media', 0)*100:.1f}%")
+                      f"Conf: {stats_ia.get('confianca_media', 0)*100:.1f}% | "
+                      f"Batch: {limite_f2}")
             except Exception as e:
                 self.log.error(f"[Fase 2 IA] Erro: {e}", exc_info=True)
                 self.log.finalizar_operacao(op_id2, "parcial", erros=1, mensagem=str(e)[:200])

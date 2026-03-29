@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# requirements.txt — Cérebro de Engenharia Diagnóstica
+# Instalar: pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Extração de documentos ───────────────────────────────────────────────────
+python-docx>=1.1.2          # DOCX moderno (Heading, paragrafos, tabelas)
+mammoth>=1.8.0              # DOC legado (Word 97-2003) → HTML
+pdfplumber>=0.11.4          # PDF digital com bounding boxes e detecção de colunas
+pypdf>=4.3.1                # PDF fallback (extração simples)
+beautifulsoup4>=4.12.3      # HTML parsing (mammoth + arquivos .html)
+
+# ── IA e embeddings ─────────────────────────────────────────────────────────
+google-genai>=1.5.0         # SDK Gemini (text-embedding-004, gemini-2.0-flash)
+requests>=2.32.3            # Ollama REST API (llama3.2:3b, mistral:7b)
+sentence-transformers>=3.3.1  # Fallback offline de embeddings (paraphrase-multilingual-mpnet-base-v2)
+
+# ── Banco de dados e busca ───────────────────────────────────────────────────
+chromadb>=0.5.23            # Índice vetorial HNSW (busca semântica aproximada)
+
+# ── NLP e palavras-chave ─────────────────────────────────────────────────────
+yake>=0.4.8                 # Extração de palavras-chave (sem modelo externo)
+
+# ── Configuração e utilitários ───────────────────────────────────────────────
+pyyaml>=6.0.2               # Leitura de config_pericial.yaml
+python-dotenv>=1.0.1        # Gerenciamento de .env (GEMINI_API_KEY)
+openpyxl>=3.1.5             # Exportação para Excel
+
+# ── Testes ───────────────────────────────────────────────────────────────────
+pytest>=8.3.4               # Framework de testes unitários
+
+# ── Opcional: tokenizador real para PericialChunker (melhora contagem de tokens)
+# Descomente se quiser tokenização precisa via Mistral-7B tokenizer (~500KB download)
+# transformers>=4.46.3
+# sentencepiece>=0.2.0

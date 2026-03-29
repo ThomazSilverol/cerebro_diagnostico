@@ -1,0 +1,1301 @@
+# =============================================================================
+# config_pericial.yaml — Configuração do Cérebro de Engenharia Diagnóstica
+# Versão 5.1 — Enriquecido com pesquisa em normas e artigos técnicos
+#
+# Fontes desta versão:
+#   [A] Banco_Pericial_Multimodal.xlsx (4.373 registros)
+#   [B] ABNT NBR 13752:2024 — Perícias de Engenharia na Construção Civil
+#   [C] ABNT NBR 16747:2020 — Inspeção Predial (diretrizes, conceitos, terminologia)
+#   [D] ABNT NBR 17170:2022 — Garantias de Edificações (prazos e diretrizes)
+#   [E] IBAPE/SP Norma Básica de Perícias de Engenharia 2015
+#   [F] ABNT NBR 15575-1:2013 — Edificações Habitacionais — Desempenho
+#   [G] ABNT NBR 14653-2:2011 — Avaliação de Bens — Imóveis Urbanos
+#   [H] Método GUT (Kepner & Tregoe, 1981; adapt. Verzola et al. 2014; Böes 2017)
+#   [I] IBAPE/SP — Norma de Inspeção Predial Nacional 2012
+#   [J] ABNT NBR 5674:2012 — Manutenção de Edificações
+#   [K] ABNT NBR 16280:2015 — Reforma em Edificações
+#   [L] ABNT NBR 14037 — Manual de Uso, Operação e Manutenção
+#
+# Atualizado em: 2026-03
+# =============================================================================
+
+# =============================================================================
+# SISTEMA
+# =============================================================================
+sistema:
+  modelo_llm: "claude-sonnet-4-6"
+  temperatura_rag: 0.1
+  provedor: "anthropic"
+  versao_config: "5.1"
+  banco_referencia: "Banco_Pericial_Multimodal.xlsx"
+  norma_pericia_vigente: "ABNT NBR 13752:2024"   # [B] substitui versão 1996
+  norma_inspecao_vigente: "ABNT NBR 16747:2020"  # [C]
+  norma_garantia_vigente: "ABNT NBR 17170:2022"  # [D]
+
+# =============================================================================
+# BANCO MULTIMODAL — Mapeamento das abas reais do banco
+# =============================================================================
+banco_multimodal:
+  abas:
+    banco_documental:
+      nome: "Banco Documental e Normas"
+      colunas: [Arquivo, Tipo, Item, Hierarquia, "Texto Original", "Análise (IA)", "Palavras-Chave"]
+      total_linhas_aprox: 4373
+      uso: "Fonte primária de trechos normativos e de laudos"
+
+    parametros_normativos:
+      nome: "Parâmetros Normativos"
+      colunas: [Norma, Tipo, Parâmetro, Valor, Unidade, Item, Pág., Contexto]
+      total_linhas_aprox: 1707
+      uso: "Valores numéricos extraídos de normas — base para confronto técnico"
+
+    matriz_risco:
+      nome: "Matriz de Risco"
+      colunas: [Origem, Análise, "Risco (IA)", "Risco (Perito)", "GUT (IA)", "GUT (Perito)", Critério, "Palavras-Chave"]
+      uso: "Classificação GUT e risco — preenchida pelo perito após análise"
+
+    quesitos_respondidos:
+      nome: "Quesitos Respondidos"
+      colunas: ["Laudo Fonte", Sessão, Pergunta, Resposta]
+      total_linhas_aprox: 87
+      sessoes_conhecidas:
+        - "Quesitos Autor"
+        - "Quesitos complementares Autor"
+        - "Quesitos Réu"
+      uso: "Base de respostas a quesitos judiciais"
+
+    textos_manuais:
+      nome: "Textos Manuais"
+      colunas: [Origem, Tópico, "Texto Original", Análise, "Palavras-Chave"]
+      uso: "Textos inseridos manualmente pelo perito"
+
+# =============================================================================
+# ARQUIVOS DO BANCO
+# =============================================================================
+arquivos_indexados:
+  laudos_judiciais:
+    - "Laudo -  5430673-20.2024.8.09.0174.docx"
+
+  normas_abnt:
+    - codigo: "NBR 14653-2"
+      arquivo: "NBR14653-2_IMVEIS_URBANOS.pdf"
+      titulo: "Avaliação de bens — Parte 2: Imóveis urbanos"
+      ano: 2011
+    - codigo: "NBR 14653-1"
+      arquivo: "ABNT-NBR-14653-1-2019.pdf"
+      titulo: "Avaliação de bens — Parte 1: Procedimentos gerais"
+      ano: 2019
+    - codigo: "NBR 15575-1"
+      arquivo: "NBR15575-1- 2013.pdf"
+      titulo: "Edificações habitacionais — Desempenho"
+      ano: 2013
+    - codigo: "NBR 10844"
+      arquivo: "ABNT 10844.pdf"
+      titulo: "Instalações prediais de águas pluviais"
+    - codigo: "NBR 5410"
+      arquivo: "NBR-5410.pdf"
+      titulo: "Instalações elétricas de baixa tensão"
+    - codigo: "NBR 5681"
+      arquivo: "NBR-5681.pdf"
+      titulo: "Controle tecnológico da execução de aterros em obras de edificações"
+    - codigo: "NBR 17170"
+      arquivo: "ABNT_NBR_17170_2022-Garantias.pdf"
+      titulo: "Garantias de serviços e obras de construção civil"
+      ano: 2022
+    - codigo: "NBR 13753"
+      arquivo: "nbr-13753-1996-revestimento-de-piso-interno-ou-externo-com-placas-cerc3a2micas-e-com-utilizac3a7c3a3o.pdf"
+      titulo: "Revestimento de piso com placas cerâmicas"
+    - codigo: "NBR 13754"
+      arquivo: "nbr-13754-revestimento-de-paredes-internas-com-placas-cerc3a2micas-e-com-utilizac3a7c3a3o-de-argamassa-colante-procedimento.pdf"
+      titulo: "Revestimento de paredes internas com placas cerâmicas"
+    - codigo: "NBR 13755"
+      arquivo: "nbr-13755-revestimento-de-paredes-externas-e-fachadas-com-placas-cerc3a2micas-e-com-utilizac3a7c3a3o-de-argamassa-colante-procedimento.pdf"
+      titulo: "Revestimento de paredes externas e fachadas com placas cerâmicas"
+
+  normas_referencia_externa:
+    # Normas não indexadas no banco mas citadas nas pesquisas e laudos — usadas na busca normativa automática
+    - codigo: "NBR 13752"
+      titulo: "Perícias de engenharia na construção civil"
+      ano: 2024
+      nota: "Versão vigente — substitui edição 1996. Inclui anamnese, vistoria de causalidade, vício de uso, vício construtivo (nova def.)"  # [B]
+    - codigo: "NBR 16747"
+      titulo: "Inspeção predial — Diretrizes, conceitos, terminologia e procedimento"
+      ano: 2020
+      nota: "Define anomalia, agentes de degradação, patamares de prioridade, plano de manutenção"  # [C]
+    - codigo: "NBR 5674"
+      titulo: "Manutenção de edificações — Requisitos para o sistema de gestão de manutenção"
+      ano: 2012
+      nota: "Referenciada em conjunto com NBR 16747"  # [J]
+    - codigo: "NBR 16280"
+      titulo: "Reforma em edificações — Sistema de gestão de reformas"
+      ano: 2015  # [K]
+    - codigo: "NBR 14037"
+      titulo: "Diretrizes para elaboração de manuais de uso, operação e manutenção das edificações"
+      nota: "Manual do proprietário / manual do síndico"  # [L]
+    - codigo: "NBR 6118"
+      titulo: "Projeto de estruturas de concreto"
+    - codigo: "NBR 9575"
+      titulo: "Impermeabilização — Seleção e projeto"
+    - codigo: "NBR 7200"
+      titulo: "Execução de revestimento de paredes e tetos de argamassas inorgânicas"
+    - codigo: "NBR 14718"
+      titulo: "Guarda-corpos para edificação"
+
+  livros_tecnicos:
+    - arquivo: "Sinistros na construção civil.pdf"
+      tipo: "livro"
+    - arquivo: "PINI - Patologia, recuperação e reforço de estruturas de concreto-ed-01-2009.pdf"
+      tipo: "livro"
+    - arquivo: "2° ed.Trincas em Edifícios - Causas ,prevenção e recuperação_ Thomaz, Ercio_ revista e ampliada _ofic (1) (1).pdf"
+      tipo: "livro"
+    - arquivo: "Propriedades do Concreto - 5ª Edição - A. M. Neville - 2016.pdf"
+      tipo: "livro"
+    - arquivo: "Análise de Estruturas Conceitos e Métodos Básicos - 2ª Edição - Luiz Fernando Martha - 2017.pdf"
+      tipo: "livro"
+    - arquivo: "Como preparar orçamentos de obras - Aldo Dórea Mattos.pdf"
+      tipo: "livro"
+
+# =============================================================================
+# HIERARQUIAS DE LAUDO — Seções H mapeadas do banco real
+# =============================================================================
+hierarquias_laudo:
+  secoes_tecnicas:
+    - "H14 ANOMALIAS E FALHAS DAS EDIFICAÇÕES"
+    - "H15 ANOMALIA"
+    - "H16 FALHA"
+    - "H17 GRAU DE RISCO"
+    - "H18 VÍCIO CONSTRUTIVO: CONCEITO, DEFINIÇÃO E CARACTERIZAÇÃO"
+    - "H22 MANUTENABILIDADE"
+    - "H23 GUARDA CORPO"
+    - "H24 MURO DE CONTENÇÃO E MURO PERIFÉRICO"
+    - "H25 PISOS E CALÇADAS"
+    - "H26 VAZIOS ABAIXO DO PISO"
+    - "H27 INFILTRAÇÕES"
+    - "H28 LAJE"
+    - "H31 COBRIMENTO DAS ARMADURAS"
+    - "H32 SEGREGAÇÃO DO CONCRETO"
+    - "H33 JANELAS"
+    - "H35 TRINCAS E FISSURAS"
+    - "H37 QUADROS ELÉTRICOS"
+    - "H41 DRENAGEM E INSTALAÇÕES DA CASA DE MÁQUINAS"
+    - "H42 SISTEMAS DE DRENAGEM DE ÁGUAS PLUVIAIS"
+
+  secoes_nao_tecnicas:
+    - "PRE"
+    - "H8 METODOLOGIA"
+    - "H12 CARACTERIZAÇÃO DA REGIÃO"
+    - "H13 DESCRIÇÃO DO OBJETO PERICIAL"
+
+# =============================================================================
+# PALAVRAS-CHAVE v2.0
+# =============================================================================
+palavras_chave:
+  versao_algoritmo: "2.0"
+  max_por_topico: 10
+  usar_ia_se_disponivel: true
+  normalizar_para_canonico: true
+  min_length_token: 4
+  idf_threshold_stopword: 0.5
+  idf_cache_ttl_horas: 24
+
+  boost_tipos_documento:
+    norma_abnt: 1.4
+    laudo_judicial: 1.3
+    livro: 1.1
+    parecer_tecnico: 1.1
+    norma_iso: 1.0
+    norma_outro: 1.0
+    artigo: 0.9
+    manual_fabricante: 0.9
+    outro: 0.8
+
+  secoes_nao_tecnicas:
+    - "preambulo"
+    - "sumario"
+    - "apresentacao"
+    - "identificacao das partes"
+    - "comunicacao da pericia"
+    - "linha do tempo"
+    - "introducao"
+    - "metodologia"
+    - "caracterizacao da regiao"
+
+  termos_tecnicos_adicionais: []
+  stopwords_tecnicas_adicionais: []
+  termos_canonicos_adicionais: {}
+
+# =============================================================================
+# VOCABULÁRIO PERICIAL — Categorias e Boosts (Camada 2)
+# v5.1 — Enriquecido com NBR 13752:2024, NBR 16747:2020, NBR 17170:2022
+# =============================================================================
+vocabulario_pericial:
+
+  patologias:
+    boost: 1.4
+    # Fonte principal: [A] banco + [B] NBR 13752:2024 + [C] NBR 16747:2020
+    # NBR 16747 def.: "anomalia: irregularidade, anormalidade e exceção à regra que
+    # ocasionam a perda de desempenho da edificação ou suas partes, oriundas da fase
+    # de projeto, execução ou final de vida útil, além de fatores externos"
+    termos:
+      # Patologias clássicas — confirmadas no banco [A]
+      - "fissura"
+      - "fissuração"
+      - "fissuras"
+      - "eflorescência"
+      - "eflorescências"
+      - "infiltração"
+      - "infiltrações"
+      - "recalque"
+      - "recalques"
+      - "recalque diferencial"
+      - "desplacamento"
+      - "desplacamentos"
+      - "corrosão"
+      - "corrosão de armadura"
+      - "carbonatação"
+      - "frente de carbonatação"
+      - "segregação"
+      - "segregações"
+      - "umidade ascendente"
+      - "umidade descendente"
+      - "manchas de umidade"
+      - "bolor"
+      - "manifestação biológica"
+      - "deformação excessiva"
+      - "flecha"
+      - "desaprumo"
+      - "desalinhamento"
+      # Patologias do banco real [A]
+      - "vazio abaixo do piso"
+      - "rebaixamento de piso"
+      - "trinca"
+      - "rachadura"
+      - "mancha"
+      - "reparo"
+      - "patologia"
+      - "sinistro"
+      - "aterro inadequado"
+      - "recalque de aterro"
+      # Novos — NBR 13752:2024 [B] e literatura técnica [H][25]
+      - "manifestação patológica"
+      - "manifestações patológicas"
+      - "não conformidade"
+      - "não conformidades"
+      - "irregularidade construtiva"
+      - "degradação precoce"
+      - "perda de desempenho"
+      - "perda de estanqueidade"
+      - "destacamento cerâmico"
+      - "telha quebrada"
+      - "tela de ancoragem ausente"
+      - "fissura estrutural"
+      - "fissura de retração"
+      - "fissura por recalque"
+      - "umidade de condensação"
+
+  classificacao_ibape:
+    boost: 1.5
+    # Fonte: [B] NBR 13752:2024 + [E] IBAPE/SP 2015 + [C] NBR 16747:2020
+    # Definições exatas NBR 13752:2024:
+    #   anomalia endógena: associada a projeto, especificações de materiais ou execução
+    #   anomalia exógena: associada a fatores externos ou provocada por terceiros
+    #   anomalia funcional: associada ao término da VUP, decrepitude ou obsolescência
+    #   vício de uso: anomalia ou falha que afeta o desempenho por uso ou manutenção inadequados
+    #   vício construtivo: anomalia ou falha com origem em projeto, materiais ou execução
+    termos:
+      - "anomalia endógena"
+      - "anomalia exógena"
+      - "anomalia natural"
+      - "anomalia funcional"
+      - "vício construtivo"
+      - "vícios construtivos"
+      - "vício de uso"           # [B] NBR 13752:2024 — novo termo
+      - "avaria"
+      - "decrepitude"
+      - "deterioração"
+      - "obsoletismo"            # [E] IBAPE/SP 2015 — superação tecnológica ou funcional
+      - "mutilação"              # [E] IBAPE/SP 2015
+      - "grau de risco crítico"
+      - "grau de risco médio"
+      - "grau de risco mínimo"
+      - "falha de planejamento"
+      - "falha de execução"
+      - "falha operacional"
+      - "falha gerencial"
+      - "nexo causal"
+      - "vistoria de causalidade"
+      - "assistência técnica"
+      - "anomalia"
+      - "falha"
+      - "grau de risco"
+      # Novos — NBR 13752:2024 [B]
+      - "método investigativo"
+      - "vistoria de constatação"
+      - "vistoria de análise comparativa de conformidade"
+      - "vistoria de análise de causalidade"
+      - "vistoria cautelar de vizinhança"
+      - "vistoria de entrega e recebimento de obra"
+      - "vistoria de obras não concluídas"
+      - "mecanismo de atuação"
+      - "agente causador"
+      # Novos — NBR 16747:2020 [C]
+      - "agentes de degradação"
+      - "patamar de prioridade"
+      - "patamares de urgência"
+      - "prioridade 1"           # perda de desempenho compromete saúde/segurança
+      - "prioridade 2"           # perda parcial de desempenho
+      - "prioridade 3"           # sem impacto imediato
+
+  elementos_construtivos:
+    boost: 1.2
+    # Fonte: [A] banco + [D] NBR 17170:2022 (sistemas/componentes) + [C] NBR 16747
+    # NBR 17170 def.: sistema (conjunto de elementos/componentes), componente (parte
+    # com funções específicas), elemento (parte do sistema)
+    termos:
+      # Do banco [A]
+      - "armadura"
+      - "armaduras"
+      - "cobrimento"
+      - "cobrimento de armadura"
+      - "cobrimento nominal"
+      - "cobrimento mínimo"
+      - "laje"
+      - "lajes"
+      - "laje protendida"
+      - "viga"
+      - "vigas"
+      - "viga de concreto"
+      - "pilar"
+      - "pilares"
+      - "fundação"
+      - "fundações"
+      - "sapata"
+      - "estaca"
+      - "alvenaria"
+      - "alvenaria de vedação"
+      - "revestimento"
+      - "revestimentos"
+      - "argamassa de revestimento"
+      - "impermeabilização"
+      - "esquadria"
+      - "esquadrias"
+      - "guarda-corpo"
+      - "guarda-corpos"
+      - "cobertura"
+      - "telhado"
+      - "calha"
+      - "rufo"
+      - "tubulação"
+      - "instalação hidráulica"
+      - "concreto armado"
+      - "bloco cerâmico"
+      - "bloco de concreto"
+      - "placa cerâmica"
+      - "porcelanato"
+      - "argamassa colante"
+      - "fibrocimento"
+      - "deck"
+      - "piscina"
+      - "muro de contenção"
+      - "muro periférico"
+      - "quadro elétrico"
+      - "rodapé"
+      - "bancada"
+      - "parapeito"
+      # Novos — NBR 17170:2022 sistemas [D] + NBR 16747 [C]
+      - "sistema construtivo"
+      - "sistemas construtivos"
+      - "subsistema"
+      - "subsistemas"
+      - "componente construtivo"
+      - "elementos construtivos"
+      - "vedação vertical"
+      - "sistema de vedação"
+      - "sistema estrutural"
+      - "sistema de cobertura"
+      - "sistema hidrossanitário"
+      - "instalação hidrossanitária"
+      - "sistema elétrico"
+      - "sistema de impermeabilização"
+      - "sistema de revestimento"
+      - "sistema de esquadrias"
+      - "pré-moldado"
+      - "estrutura pré-moldada"
+      - "estrutura metálica"
+      - "alvenaria estrutural"
+      - "painel de vedação"
+
+  parametros_desempenho:
+    boost: 1.3
+    # Fonte: [A] banco + [F] NBR 15575 + [C] NBR 16747 + [B] NBR 13752:2024
+    termos:
+      - "vida útil de projeto"
+      - "vup"
+      - "classe de agressividade ambiental"
+      - "abertura de fissura"
+      - "resistência à compressão"
+      - "estanqueidade"
+      - "permeabilidade"
+      - "aderência"
+      - "resistência de aderência"
+      - "caimento"
+      - "declividade"
+      - "altura mínima"
+      - "vão livre"
+      - "carga mínima"
+      - "carga máxima"
+      - "compactação"
+      - "grau de compactação"
+      - "caimento mínimo"
+      - "espessura mínima"
+      - "espessura máxima"
+      - "temperatura de ensaio"
+      - "tensão de ruptura"
+      - "resistência característica"
+      - "manutenabilidade"
+      - "manutenibilidade"
+      # Novos — NBR 15575 [F] + NBR 16747:2020 [C]
+      - "desempenho mínimo"
+      - "desempenho intermediário"
+      - "desempenho superior"
+      - "habitabilidade"
+      - "segurança estrutural"
+      - "segurança ao fogo"
+      - "segurança no uso e operação"
+      - "durabilidade"
+      - "sustentabilidade"
+      - "conforto térmico"
+      - "conforto acústico"
+      - "nível de desempenho"
+      - "comportamento em uso"
+      - "estado de conservação"
+      - "vida útil efetiva"
+      - "envelhecimento natural"
+      - "requisito do usuário"
+
+  ensaios_investigacao:
+    boost: 1.3
+    # Fonte: [A] banco + [B] NBR 13752:2024
+    # NBR 13752:2024 inclui: anamnese, vistoria in loco, inventário fotográfico, coleta de dados
+    termos:
+      - "sondagem"
+      - "ensaio spt"
+      - "esclerometria"
+      - "índice esclerométrico"
+      - "pacometria"
+      - "cobrimento por pacômetro"
+      - "carbonatação por fenolftaleína"
+      - "termografia"
+      - "inspeção termográfica"
+      - "ensaio de arrancamento"
+      - "pull-off"
+      - "percussão"
+      - "sondagem à percussão"
+      - "prova de carga"
+      - "inventário fotográfico"
+      - "vistoria in loco"
+      - "anamnese"               # [B] NBR 13752:2024 — etapa de coleta histórica
+      - "inspeção"
+      - "ensaio laboratorial"
+      - "diagnóstico técnico"
+      # Novos — NBR 13752:2024 [B] e NBR 16747 [C]
+      - "coleta de dados"
+      - "coleta de documentos"
+      - "levantamento histórico"
+      - "análise documental"
+      - "potencial alcalino"
+      - "teor de cloreto"
+      - "teor de sulfato"
+      - "potencial de corrosão"
+      - "inspeção visual"
+      - "inspeção sensorial"
+      - "inspeção predial"
+      - "vistoria comparativa"
+      - "vistoria técnica"
+      - "investigação pericial"
+      - "diagnóstico estrutural"
+      - "laudo de inspeção predial"
+      - "checklist de inspeção"
+
+  normas_numeradas:
+    boost: 1.0
+    # Lista completa atualizada incluindo normas citadas na pesquisa [B][C][D][F][J][K][L]
+    termos:
+      - "nbr 6118"
+      - "nbr 15575"
+      - "nbr 15575-1"
+      - "nbr 9575"
+      - "nbr 5674"
+      - "nbr 13752"
+      - "nbr 13752:2024"
+      - "nbr 16747"
+      - "nbr 16747:2020"
+      - "nbr 14718"
+      - "nbr 10844"
+      - "nbr 5410"
+      - "nbr 5419"
+      - "nbr 7200"
+      - "nbr 13755"
+      - "nbr 13754"
+      - "nbr 13753"
+      - "nbr 14653-1"
+      - "nbr 14653-2"
+      - "nbr 17170"
+      - "nbr 17170:2022"
+      - "nbr 5681"
+      - "nbr 16280"
+      - "nbr 14037"
+      - "iso 6707"
+      - "ibape"
+      - "confea"
+      - "crea"
+      - "cau"
+      - "cpc"                   # [B] Código de Processo Civil — citado em NBR 13752:2024
+
+  responsabilidade_juridica:
+    boost: 1.4
+    # Fonte: [A] banco + [D] NBR 17170:2022 + [B] NBR 13752:2024
+    # NBR 17170:2022 traz novos termos: prazo de garantia, termo de garantia, garantia legal,
+    # assistência técnica pós-entrega, plano de manutenção, perda de garantia
+    termos:
+      - "responsabilidade civil"
+      - "responsabilidade técnica"
+      - "construtora responsável"
+      - "incorporadora"
+      - "prazo de garantia"
+      - "garantia legal"
+      - "manual do proprietário"
+      - "manual do síndico"
+      - "art. 618 cc"
+      - "art. 12 cdc"
+      - "prazo decadencial"
+      - "prazo prescricional"
+      - "habite-se"
+      - "projeto aprovado"
+      - "projeto executivo"
+      - "memorial descritivo"
+      - "financiamento"
+      - "lucro cessante"
+      - "indenização"
+      - "quesito"
+      - "quesitos"
+      # Novos — NBR 17170:2022 [D]
+      - "termo de garantia"
+      - "prazo de garantia legal"
+      - "prazo de garantia contratual"
+      - "garantia contratual"
+      - "assistência técnica pós-entrega"
+      - "perda de garantia"
+      - "condições de garantia"
+      - "data de início do prazo de garantia"
+      - "auto de conclusão"
+      - "manual de uso operação e manutenção"
+      - "plano de manutenção"
+      - "manutenção preventiva"
+      - "manutenção corretiva"
+      - "manutenção preditiva"
+      - "falha por ausência de manutenção"
+      - "vício redibitório"
+      - "responsabilidade objetiva"
+      - "inversão do ônus da prova"
+      - "falsidade pericial"        # [E] IBAPE/SP 2015 — perícia imprestável
+      - "art"
+      - "anotação de responsabilidade técnica"
+      - "registro de responsabilidade técnica"
+      - "assistente técnico"
+
+  avaliacao_imobiliaria:
+    boost: 1.3
+    # Fonte: [G] NBR 14653-2:2011
+    termos:
+      - "valor de mercado"
+      - "método comparativo direto"
+      - "método comparativo direto de dados de mercado"
+      - "método involutivo"
+      - "método evolutivo"
+      - "método da renda"
+      - "método da quantificação de custo"
+      - "grau de fundamentação"
+      - "grau de precisão"
+      - "campo de arbítrio"
+      - "tratamento por fatores"
+      - "tratamento científico"
+      - "regressão linear"
+      - "outlier"
+      - "ponto influenciante"
+      - "estimativa pontual"
+      - "estimativa de tendência central"
+      - "intervalo de confiança"
+      - "intervalo de predição"
+      - "homogeneização"
+      - "fator de homogeneização"
+      - "depreciação física"
+      - "custo de reedição"
+      - "bdi"
+      - "imóvel paradigma"
+      - "imóvel avaliando"
+      - "aproveitamento eficiente"
+      - "gleba urbanizável"
+      - "conciliação"
+      - "valor arbitrado"
+      - "laudo de avaliação"
+      - "laudo completo"
+      - "laudo simplificado"
+      - "defeito construtivo"
+      - "padrão construtivo"
+      - "depreciação"
+      - "valor depreciável"
+      - "fator de comercialização"
+      - "planta de valores"
+      - "polo de influência"
+
+  drenagem_hidraulica:
+    boost: 1.2
+    # Fonte: [A] banco (NBR 10844) + H41/H42 do laudo
+    termos:
+      - "drenagem"
+      - "águas pluviais"
+      - "escoamento"
+      - "calha"
+      - "condutores"
+      - "ralo"
+      - "sarjeta"
+      - "bocal"
+      - "canaleta"
+      - "bacia de contenção"
+      - "caimento"
+      - "declividade mínima"
+      - "esgoto sanitário"
+      - "instalação hidrossanitária"
+      - "casa de máquinas"
+      - "bomba de recalque"
+
+  garantias_prazos:
+    # NOVA CATEGORIA — NBR 17170:2022 [D]
+    # Prazos tecnicamente recomendados pela norma para subsistemas:
+    # estrutura: 20 anos | elétricas/hidráulicas: 5 anos | acabamentos: 1-3 anos
+    boost: 1.3
+    termos:
+      - "prazo de garantia estrutural"
+      - "garantia de 20 anos"
+      - "garantia de 5 anos"
+      - "garantia de 3 anos"
+      - "garantia de 1 ano"
+      - "prazo irredutível de cinco anos"
+      - "sólido e seguro"
+      - "solidez e segurança"
+      - "art. 618 do código civil"
+      - "prazo de 90 dias para reparos parciais"
+      - "garantia de fundação"
+      - "garantia estrutural"
+      - "garantia hidráulica"
+      - "garantia elétrica"
+      - "garantia de impermeabilização"
+      - "garantia de revestimento"
+      - "garantia de esquadrias"
+      - "garantia de equipamentos"
+      - "renovação de prazo"
+      - "prazo remanescente"
+      - "perda de garantia por falta de manutenção"
+      - "perda de garantia por reforma"
+
+  manutencao_predial:
+    # NOVA CATEGORIA — NBR 5674:2012 [J] + NBR 16747:2020 [C] + NBR 16280 [K]
+    boost: 1.2
+    termos:
+      - "manutenção"
+      - "manutenção predial"
+      - "plano de manutenção"
+      - "programa de manutenção"
+      - "inspeção predial"
+      - "vida útil"
+      - "gestão de manutenção"
+      - "manutenção preventiva"
+      - "manutenção corretiva"
+      - "manutenção preditiva"
+      - "ausência de manutenção"
+      - "falta de manutenção"
+      - "falha de manutenção"
+      - "falha de uso"
+      - "falha de operação"
+      - "reforma"
+      - "sistema de gestão de reformas"
+      - "alteração das condições originais"
+      - "documentação de manutenção"
+      - "registro de manutenção"
+      - "degradação"
+      - "envelhecimento"
+      - "obsolescência"
+
+# =============================================================================
+# DEFINIÇÕES NORMATIVAS — Glossário técnico integrado
+# Para uso como contexto em prompts de IA e validação de respostas
+# =============================================================================
+definicoes_normativas:
+
+  # [B] NBR 13752:2024
+  nbr_13752_2024:
+    anamnese: >
+      Etapa da perícia que consiste em estudo histórico do objeto,
+      incluindo análise de documentos, histórico de uso e manutenção,
+      realizada antes ou durante a vistoria.
+    manifestacao_patologica: >
+      Irregularidade que se manifesta no produto em função de falhas no projeto,
+      na fabricação, na instalação, na execução, na montagem, no uso ou na manutenção,
+      bem como problemas que não decorram do envelhecimento natural. (ref. NBR 15575)
+    anomalia: >
+      Irregularidade, anormalidade, exceção à regra e padrão estabelecido.
+    anomalia_endogena: >
+      Anomalia associada a projeto, especificações de materiais ou execução.
+    anomalia_exogena: >
+      Anomalia associada a fatores externos ou provocada por terceiros.
+    anomalia_funcional: >
+      Anomalia associada ao término da vida útil de projeto, à decrepitude ou à obsolescência.
+    vicio_uso: >
+      Anomalia ou falha que afeta o desempenho de produtos ou serviços,
+      ou os torna inadequados aos fins a que se destinam.
+    vicio_construtivo: >
+      Anomalia ou falha com origem associada a projeto, especificações de materiais
+      ou execução, que afeta o desempenho de produtos ou serviços, ou os torna
+      inadequados aos fins a que se destinam.
+    vistoria_constatacao: >
+      Verificação de fatos ou situações com descrição minuciosa dos elementos.
+      Pode caracterizar tipologia, estado de conservação, padrão construtivo,
+      anomalias, manifestações patológicas. Não determina causas, responsabilidades ou soluções.
+    vistoria_analise_causalidade: >
+      Vistoria com método investigativo e analítico fundamentado que permite
+      apuração de causas. Exige nexo causal fundamentado e classifica responsabilidades.
+    vistoria_comparativa_conformidade: >
+      Análise comparativa de conformidade entre o estado verificado e os
+      requisitos técnicos normativos aplicáveis.
+    nexo_causal: >
+      Vínculo fático entre efeito (sintoma, anomalia) e causa.
+      Pautado na relação efeito × causa com metodologia investigativa técnica.
+
+  # [C] NBR 16747:2020
+  nbr_16747_2020:
+    anomalia_inspecao: >
+      Irregularidade, anormalidade e exceção à regra que ocasionam a perda de desempenho
+      da edificação ou suas partes, oriundas da fase de projeto, execução ou final de
+      vida útil, além de fatores externos (endógena, funcional ou exógena).
+    agentes_degradacao: >
+      Tudo aquilo que, ao agir sobre um sistema, contribui para reduzir seu desempenho.
+    patamar_prioridade_1: >
+      Ações imediatas: perda de desempenho compromete saúde e/ou segurança dos usuários
+      e/ou a funcionalidade dos sistemas, com possíveis paralisações, comprometimento
+      de durabilidade, vida útil e/ou aumento expressivo de custo de recuperação.
+      Equivale ao Grau de Risco Crítico (IBAPE).
+    patamar_prioridade_2: >
+      Ações em médio prazo: perda parcial de desempenho sem impacto imediato
+      sobre funcionalidade. Equivale ao Grau de Risco Médio (IBAPE).
+    patamar_prioridade_3: >
+      Ações sem urgência: perda de desempenho sem impacto sobre funcionalidade,
+      segurança e saúde. Equivale ao Grau de Risco Mínimo (IBAPE).
+
+  # [D] NBR 17170:2022
+  nbr_17170_2022:
+    prazo_garantia: >
+      Período durante o qual um fornecedor assume responsabilidade perante o consumidor
+      para corrigir falhas nos produtos por ele fornecidos, originadas no processo de
+      concepção e produção, desde que realizada manutenção devida e uso correto.
+    garantia_legal: >
+      Direito do proprietário de reclamar reparos ou recomposição do produto adquirido,
+      conforme legislação vigente (art. 618 CC — 5 anos para solidez e segurança).
+    data_inicio_garantia: >
+      Data de emissão do auto de conclusão (habite-se) ou documento equivalente
+      que ateste a conclusão das obras ou dos serviços.
+    prazos_referencia:
+      estrutura_vigas_lajes_pilares: "20 anos"
+      instalacoes_eletricas_hidraulicas: "5 anos"
+      impermeabilizacao: "5 anos"
+      revestimentos_externos: "3 anos"
+      revestimentos_internos: "1 a 3 anos"
+      esquadrias_equipamentos: "1 ano"
+      reparos_parciais_minimo: "90 dias"
+
+  # [E] IBAPE/SP 2015 + NBR 13752
+  ibape_classificacoes:
+    decrepitude: "Deterioração natural e progressiva dos materiais da construção"
+    mutilacao: "Dano físico direto provocado intencionalmente ou acidentalmente"
+    avaria: "Dano, deterioração ou estragos em elemento construtivo"
+    obsoletismo: "Superação tecnológica ou funcional do sistema ou componente"
+    grau_risco_critico: >
+      Risco que oferece perda de vidas humanas, do meio ambiente ou do
+      próprio edifício. Ação imediata necessária. (= Prioridade 1 NBR 16747)
+    grau_risco_medio: >
+      Risco que provoca ferimentos em pessoas, danos ao meio ambiente ou ao edifício.
+      (= Prioridade 2 NBR 16747)
+    grau_risco_minimo: >
+      Desconfortos, deterioração do meio ambiente ou do edifício, pequenos
+      prejuízos financeiros. (= Prioridade 3 NBR 16747)
+
+# =============================================================================
+# MÉTODO GUT ADAPTATIVO v5.0
+# Calibrado com a literatura técnica [H] (Kepner & Tregoe 1981; Verzola 2014; Böes 2017)
+# Correlação: gravidade GUT ↔ criticidade CMB ↔ grau de risco IBAPE ↔ prioridade NBR 16747
+# =============================================================================
+taxonomia_gut:
+  referencia: "Kepner & Tregoe (1981), adaptado por Verzola et al. (2014) e Böes (2017)"
+
+  # Escala de Gravidade (G) — 1 a 5
+  gravidade:
+    5: "Perda de vidas humanas, do meio ambiente ou do próprio edifício"
+    4: "Ferimentos em pessoas, danos ao meio ambiente ou ao edifício"
+    3: "Desconfortos, deterioração do meio ambiente ou do edifício"
+    2: "Pequenos incômodos ou pequenos prejuízos financeiros"
+    1: "Sem gravidade"
+
+  # Escala de Urgência (U) — 1 a 5
+  urgencia:
+    5: "Evento em ocorrência — necessita ação imediata"
+    4: "Evento prestes a ocorrer — prazo muito curto"
+    3: "Evento com prognóstico em breve — dias/semanas"
+    2: "Evento com prognóstico para adiante — meses"
+    1: "Evento com prognóstico distante — sem pressão de tempo"
+
+  # Escala de Tendência (T) — 1 a 5
+  tendencia:
+    5: "Piora imediatamente sem ação"
+    4: "Piora em pouco tempo sem ação"
+    3: "Piora em médio prazo sem ação"
+    2: "Piora em longo prazo sem ação"
+    1: "Não piora e pode melhorar sozinho"
+
+  # Correlação entre métodos — fonte: [H]
+  correlacao_metodos:
+    gut_gravidade_4_ou_5: "grau de risco crítico (IBAPE) = prioridade 1 (NBR 16747)"
+    gut_gravidade_3:      "grau de risco médio (IBAPE) = prioridade 2 (NBR 16747)"
+    gut_gravidade_1_ou_2: "grau de risco mínimo (IBAPE) = prioridade 3 (NBR 16747)"
+
+  # Regra especial — fonte: [29] (TJDFT)
+  # Se G ≥ 8 ou U ≥ 8, T recebe automaticamente pontuação máxima (10)
+  regra_gravidade_urgencia_maxima:
+    threshold: 8
+    acao: "atribuir T=10 automaticamente"
+
+gut_adaptativo:
+  habilitado: true
+  threshold_autonomo: 0.80
+  threshold_semi_autonomo: 0.50
+  casos_minimos_autonomo: 5
+  usar_ia_por_padrao: false
+  salvar_automatico: false
+  decay_180_dias: 0.8
+  decay_365_dias: 0.5
+  peso_caso_corrigido: 0.3
+  peso_projeto_atual: 1.5
+  confianca_minima_dimensao: 0.70
+  sobreposicao_threshold: 0.15
+  sobreposicao_pct_min: 0.50
+  shs_habilitado: true
+  exigir_nexo_causal: true
+  t_minimo_em_ocorrencia: 7
+  t_maximo_em_regressao: 2
+  desconto_subsistema_diferente: 0.30
+
+  # Mapeamento seções H → subsistemas GUT e normas associadas
+  mapa_hierarquia_subsistema:
+    "H14 ANOMALIAS E FALHAS DAS EDIFICAÇÕES":
+      subsistema: "geral"
+      normas: ["NBR 13752:2024", "NBR 16747:2020"]
+    "H15 ANOMALIA":
+      subsistema: "geral"
+      normas: ["NBR 13752:2024", "NBR 16747:2020"]
+    "H16 FALHA":
+      subsistema: "geral"
+      normas: ["NBR 13752:2024"]
+    "H17 GRAU DE RISCO":
+      subsistema: "geral"
+      normas: ["IBAPE/SP 2015", "NBR 16747:2020"]
+    "H18 VÍCIO CONSTRUTIVO: CONCEITO, DEFINIÇÃO E CARACTERIZAÇÃO":
+      subsistema: "geral"
+      normas: ["NBR 13752:2024", "NBR 17170:2022"]
+    "H22 MANUTENABILIDADE":
+      subsistema: "manutencao"
+      normas: ["NBR 5674:2012", "NBR 15575-1", "NBR 17170:2022"]
+    "H23 GUARDA CORPO":
+      subsistema: "seguranca_uso_operacao"
+      normas: ["NBR 14718", "NBR 15575-1"]
+    "H24 MURO DE CONTENÇÃO E MURO PERIFÉRICO":
+      subsistema: "estrutural"
+      normas: ["NBR 6118"]
+    "H25 PISOS E CALÇADAS":
+      subsistema: "piso_revestimento"
+      normas: ["NBR 10844", "NBR 13753", "NBR 15575-1"]
+    "H26 VAZIOS ABAIXO DO PISO":
+      subsistema: "piso_revestimento"
+      normas: ["NBR 5681", "NBR 13753"]
+    "H27 INFILTRAÇÕES":
+      subsistema: "impermeabilizacao_estanqueidade"
+      normas: ["NBR 9575", "NBR 15575-1"]
+    "H28 LAJE":
+      subsistema: "estrutural"
+      normas: ["NBR 6118", "NBR 15575-1"]
+    "H31 COBRIMENTO DAS ARMADURAS":
+      subsistema: "estrutural"
+      normas: ["NBR 6118"]
+    "H32 SEGREGAÇÃO DO CONCRETO":
+      subsistema: "estrutural"
+      normas: ["NBR 6118"]
+    "H33 JANELAS":
+      subsistema: "esquadria"
+      normas: ["NBR 15575-1", "NBR 17170:2022"]
+    "H35 TRINCAS E FISSURAS":
+      subsistema: "estrutural"
+      normas: ["NBR 6118", "NBR 15575-1"]
+    "H37 QUADROS ELÉTRICOS":
+      subsistema: "eletrico"
+      normas: ["NBR 5410"]
+    "H41 DRENAGEM E INSTALAÇÕES DA CASA DE MÁQUINAS":
+      subsistema: "hidraulico"
+      normas: ["NBR 10844"]
+    "H42 SISTEMAS DE DRENAGEM DE ÁGUAS PLUVIAIS":
+      subsistema: "hidraulico"
+      normas: ["NBR 10844"]
+
+# =============================================================================
+# PARÂMETROS NORMATIVOS — Valores numéricos do banco real [A]
+# =============================================================================
+parametros_normativos_banco:
+
+  caimentos:
+    - descricao: "Caimento mínimo — piso sobre laje"
+      valor_min: 1.5
+      unidade: "%"
+      item_norma: "4.4.3"
+      norma: "NBR 10844 / NBR 15575"
+    - descricao: "Caimento mínimo — piso sobre concreto simples ou armado"
+      valor_min: 1.0
+      unidade: "%"
+      item_norma: "4.4.3"
+      norma: "NBR 10844"
+    - descricao: "Caimento — áreas de uso comum"
+      valor_min: 0.5
+      unidade: "%"
+      item_norma: "4.4.2"
+      norma: "NBR 10844"
+    - descricao: "Caimento — boxes de banheiro"
+      valor_min: 1.5
+      valor_max: 2.5
+      unidade: "%"
+      item_norma: "4.4.3"
+      norma: "NBR 15575"
+
+  alturas_minimas:
+    - descricao: "Altura mínima de rodapé recomendada"
+      valor_min: 70
+      unidade: "mm"
+      item_norma: "4.1.6"
+    - descricao: "Altura mínima de dispositivos elétricos (NBR 5410)"
+      valor_min: 2.50
+      unidade: "m"
+      item_norma: "6.2.11.4.1"
+      norma: "NBR 5410"
+
+  espessuras:
+    - descricao: "Espessura máxima por camada de argamassa de revestimento"
+      valor_max: 25
+      unidade: "mm"
+      item_norma: "p.0"
+    - descricao: "Espessura mínima — membrana poliisobutileno"
+      valor_min: 0.8
+      unidade: "mm"
+      item_norma: "5.3.2"
+    - descricao: "Espessura máxima por camada — juntas"
+      valor_max: 1.0
+      unidade: "cm"
+      item_norma: "3.6.2"
+    - descricao: "Argamassa revestimento — espessura mínima sobre concreto"
+      valor_min: 1.0
+      unidade: "cm"
+      item_norma: "13"
+
+  prazos_garantia_nbr17170:
+    # [D] NBR 17170:2022 — prazos tecnicamente recomendados
+    - sistema: "Estrutura (fundações, vigas, lajes, pilares)"
+      prazo_anos: 20
+      lei_referencia: "art. 618 CC (mínimo 5 anos)"
+    - sistema: "Instalações elétricas e hidráulicas"
+      prazo_anos: 5
+    - sistema: "Impermeabilização"
+      prazo_anos: 5
+    - sistema: "Revestimentos externos (fachada)"
+      prazo_anos: 3
+    - sistema: "Revestimentos internos"
+      prazo_anos: 1
+      prazo_maximo_anos: 3
+    - sistema: "Esquadrias e equipamentos"
+      prazo_anos: 1
+    - sistema: "Reparos parciais (mínimo legal)"
+      prazo_meses: 3
+      nota: "90 dias ou prazo remanescente, o que for maior"
+
+# =============================================================================
+# TERMOS CANÔNICOS — Normalização na indexação
+# v5.1 — Enriquecido com novos termos de [B][C][D]
+# =============================================================================
+termos_canonicos:
+  # Patologias — variantes → canônico NBR
+  "trinca": "fissura"
+  "rachadura": "fissura"
+  "fenda": "fissura"
+  "trincamento": "fissuração"
+  "fissuração mapeada": "fissuração"
+  "fissura mapeada": "fissuração"
+  "trincas": "fissuras"
+  "rachaduras": "fissuras"
+  "destacamento cerâmico": "desplacamento"
+  "queda de cerâmica": "desplacamento"
+
+  # Elementos construtivos
+  "janela": "esquadria"
+  "caixilho": "esquadria"
+  "ferro": "armadura"
+  "ferragem": "armadura"
+  "aço": "armadura"
+  "cobrimento nominal": "cobrimento de armadura"
+  "teto": "laje"
+  "forro": "laje"
+  "fundação rasa": "fundação"
+  "fundação profunda": "fundação"
+  "parede": "vedação vertical"
+  "parede de alvenaria": "alvenaria"
+
+  # Patologias — variantes informais
+  "mofo": "manifestação biológica"
+  "fungo": "manifestação biológica"
+  "mancha de umidade": "infiltração"
+  "mancha d'água": "infiltração"
+  "descolamento": "desplacamento"
+  "descolamento cerâmico": "desplacamento"
+  "queda de revestimento": "desplacamento"
+  "corrosão de ferro": "corrosão de armadura"
+  "ferrugem": "corrosão de armadura"
+
+  # Ensaios
+  "sondagem rotativa": "sondagem"
+  "sondagem percussão": "ensaio spt"
+
+  # Classificações de risco — [E] IBAPE + [C] NBR 16747 correlação
+  "crítico": "grau de risco crítico"
+  "grave": "grau de risco crítico"
+  "médio": "grau de risco médio"
+  "mínimo": "grau de risco mínimo"
+  "origem endógena": "anomalia endógena"
+  "origem exógena": "anomalia exógena"
+  "prioridade 1": "grau de risco crítico"   # [C] NBR 16747 ↔ [E] IBAPE
+  "prioridade 2": "grau de risco médio"
+  "prioridade 3": "grau de risco mínimo"
+
+  # Avaliação imobiliária — [G] NBR 14653-2
+  "mcd": "método comparativo direto"
+  "método comparativo": "método comparativo direto"
+  "regressão": "regressão linear"
+  "depreciação": "depreciação física"
+  "custo de reprodução": "custo de reedição"
+  "valor de indenização": "valor de mercado"
+  "campo de 15%": "campo de arbítrio"
+
+  # Termos do laudo real
+  "inventário fotográfico": "inspeção"
+  "anamnese": "anamnese"                    # preservar — termo técnico [B] NBR 13752:2024
+  "vistoria in loco": "vistoria"
+  "manutenabilidade": "manutenibilidade"
+
+  # Garantias — [D] NBR 17170:2022
+  "5 anos": "prazo de garantia"
+  "20 anos estrutural": "prazo de garantia estrutural"
+  "habite-se": "auto de conclusão"
+  "manual do proprietário": "manual de uso operação e manutenção"
+  "manual do síndico": "manual de uso operação e manutenção"
+
+  # Nomenclatura NBR 13752:2024 [B]
+  "vistoria de análise de causalidade": "vistoria de causalidade"
+  "perícia de vício": "vistoria de análise de causalidade"
+  "nexo causal": "nexo causal"
+  "vício de uso": "vício de uso"
+  "vício oculto": "vício construtivo"
+  "defeito": "manifestação patológica"
+
+# =============================================================================
+# STOPWORDS TÉCNICAS — v5.1
+# MANTIDAS como na v5.0 — a pesquisa confirmou a lista anterior
+# ADICIONADAS: termos em inglês de livros técnicos
+# =============================================================================
+stopwords_tecnicas:
+  # Termos ubíquos do domínio
+  - "laudo"
+  - "laudos"
+  - "laudo pericial"
+  - "laudo técnico"
+  - "norma"
+  - "normas"
+  - "normativa"
+  - "requisito"
+  - "requisitos"
+  - "construção"
+  - "construções"
+
+  # NOTA: "estrutura", "desempenho", "edificação", "imóvel", "sistema", "sistemas"
+  # NÃO são stopwords — são termos técnicos relevantes (confirmado pelo banco [A])
+
+  # Verbos e locuções sem conteúdo técnico
+  - "deve"
+  - "devem"
+  - "deverá"
+  - "deverão"
+  - "pode"
+  - "podem"
+  - "poderá"
+  - "conforme"
+  - "segundo"
+  - "mediante"
+  - "previsto"
+  - "previstos"
+  - "prevista"
+  - "estabelece"
+  - "estabelecido"
+  - "estabelecida"
+  - "determina"
+  - "determinado"
+  - "indica"
+  - "indicado"
+
+  # Substantivos genéricos
+  - "forma"
+  - "modo"
+  - "meio"
+  - "caso"
+  - "vez"
+  - "tipo"
+  - "tipos"
+  - "parte"
+  - "partes"
+  - "seção"
+  - "presente"
+  - "objeto"
+  - "objetivo"
+  - "resultado"
+  - "resultados"
+
+  # Fragmentos de frases
+  - "presente análise"
+  - "conforme descrito"
+  - "proveniente do solo"
+  - "sejam desenvolvidos"
+  - "desenvolvidos projetos"
+
+  # Termos jurídicos genéricos
+  - "processo"
+  - "autos"
+  - "autor"
+  - "réu"
+  - "requerente"
+  - "requerido"
+
+  # ABNT/NBR sem número
+  - "abnt"
+  - "nbr"
+
+  # Termos de livros em inglês — indexados indevidamente [A]
+  - "concrete"
+  - "cement"
+  - "strength"
+  - "research"
+  - "journal"
+  - "london"
+  - "international"
+  - "properties"
+  - "effect"
+  - "creep"
+  - "paste"
+  - "high"
+  - "practice"
+  - "astm"
+  - "proc"
+  - "inst"
+  - "amer"
+  - "part"
+  - "neville"
+
+# =============================================================================
+# ANÁLISE IBAPE v2.0
+# =============================================================================
+analise_ibape:
+  habilitado: true
+  banco_dedicado: "analise_ibape.db"
+  nexo_causal_obrigatorio: true
+  min_chars_descricao: 100
+  min_chars_nexo_causal: 50
+  busca_normas_automatica: true
+  max_resultados_busca: 5
+  exportar_finalizadas_apenas: false
+  pasta_exportacao: "exportacoes/"
+  alertas_consistencia: true
+
+  sessoes_quesitos:
+    - "Quesitos Autor"
+    - "Quesitos complementares Autor"
+    - "Quesitos Réu"
+
+  campos_obrigatorios_laudo:
+    - id: "H14"
+      descricao: "Anomalias e Falhas das Edificações"
+    - id: "H15"
+      descricao: "Anomalia"
+    - id: "H16"
+      descricao: "Falha"
+    - id: "H17"
+      descricao: "Grau de Risco"
+    - id: "H18"
+      descricao: "Vício Construtivo"
+
+  # Roteamento automático normas por tema — enriquecido com a pesquisa
+  normas_por_tema:
+    trincas_fissuras:
+      - "NBR 6118"
+      - "NBR 15575-1"
+      - "Thomaz — Trincas em Edifícios"
+    infiltracao_impermeabilizacao:
+      - "NBR 9575"
+      - "NBR 15575-1"
+    pisos_revestimentos:
+      - "NBR 13753"
+      - "NBR 13754"
+      - "NBR 13755"
+      - "NBR 15575-1"
+    esquadrias:
+      - "NBR 15575-1"
+      - "NBR 17170:2022"
+    drenagem:
+      - "NBR 10844"
+      - "NBR 15575-1"
+    eletrico:
+      - "NBR 5410"
+    estrutural:
+      - "NBR 6118"
+      - "NBR 15575-1"
+    garantias:
+      - "NBR 17170:2022"
+      - "art. 618 CC"
+      - "CDC art. 12"
+    avaliacao_imobiliaria:
+      - "NBR 14653-1"
+      - "NBR 14653-2"
+    inspecao_predial:
+      - "NBR 16747:2020"
+      - "NBR 5674:2012"
+    vicio_construtivo:
+      - "NBR 13752:2024"
+      - "NBR 15575-1"
+      - "NBR 17170:2022"
+    manutenção:
+      - "NBR 5674:2012"
+      - "NBR 16280:2015"
+      - "NBR 14037"
+    aterro_fundacao:
+      - "NBR 5681"
+      - "NBR 6118"
+    guarda_corpo:
+      - "NBR 14718"
+      - "NBR 15575-1"

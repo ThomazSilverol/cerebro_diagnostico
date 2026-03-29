@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"from ollama_engine import OllamaEngine; e = OllamaEngine\\(\\); print\\(''Disponivel:'', e.disponivel\\); print\\(''Modelos instalados:'', e.listar_modelos\\(\\)\\)\")",
+      "Bash(PYTHON=\"/c/Users/THOMAZ/AppData/Local/Programs/Python/Python314/python.exe\")",
+      "Bash(rm -rf __pycache__)",
+      "Bash(\"$PYTHON\" migrations.py banco_pericial.db)",
+      "Bash(\"$PYTHON\" -c \":*)",
+      "Bash(\"$PYTHON\" -m py_compile main.py)",
+      "Bash(\"$PYTHON\" -m py_compile ia_integrator.py)",
+      "Bash(\"$PYTHON\" -m py_compile ollama_engine.py)",
+      "Bash(\"$PYTHON\" -m py_compile orchestrator.py)",
+      "Bash(python -c \":*)"
+    ]
+  }
+}
